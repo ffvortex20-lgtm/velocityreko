@@ -25,22 +25,22 @@
     <div id="dashboard" class="hidden max-w-4xl mx-auto space-y-8 py-10">
         <div class="flex justify-between items-center">
             <h1 class="text-2xl font-black italic text-blue-500">VELOCITY DASHBOARD</h1>
-            <button onclick="logout()" class="text-xs text-zinc-500 hover:text-white uppercase tracking-widest">Sair</button>
+            <button onclick="logout()" class="text-xs text-zinc-500 hover:text-white uppercase tracking-widest font-bold">Sair</button>
         </div>
 
         <div class="bg-[#111] border border-zinc-800 p-8 rounded-3xl shadow-2xl">
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <input id="title" type="text" placeholder="Título do Link" class="p-4 bg-black border border-zinc-800 rounded-2xl outline-none focus:border-blue-600">
-                <input id="slug" type="text" placeholder="Slug (ex: meu-link)" class="p-4 bg-black border border-zinc-800 rounded-2xl outline-none focus:border-blue-600">
-                <input id="github_user" type="text" placeholder="Usuário GitHub" class="p-4 bg-black border border-zinc-800 rounded-2xl outline-none focus:border-blue-600">
-                <input id="dest_url" type="text" placeholder="URL Destino Final" class="p-4 bg-black border border-zinc-800 rounded-2xl outline-none focus:border-blue-600">
+                <input id="title" type="text" placeholder="Título do Link" class="p-4 bg-black border border-zinc-800 rounded-2xl outline-none focus:border-blue-600 text-white">
+                <input id="slug" type="text" placeholder="Slug (ex: meu-link)" class="p-4 bg-black border border-zinc-800 rounded-2xl outline-none focus:border-blue-600 text-white">
+                <input id="github_user" type="text" placeholder="Usuário GitHub" class="p-4 bg-black border border-zinc-800 rounded-2xl outline-none focus:border-blue-600 text-white">
+                <input id="dest_url" type="text" placeholder="URL Destino Final" class="p-4 bg-black border border-zinc-800 rounded-2xl outline-none focus:border-blue-600 text-white">
             </div>
-            <button onclick="gerarLink()" id="btn-save" class="w-full mt-4 bg-blue-600 py-4 rounded-2xl font-black hover:bg-blue-500 transition-all">CRIAR LINK</button>
+            <button onclick="gerarLink()" id="btn-save" class="w-full mt-4 bg-blue-600 py-4 rounded-2xl font-black hover:bg-blue-500 transition-all uppercase tracking-tighter">CRIAR LINK</button>
         </div>
 
         <div class="bg-[#111] border border-zinc-800 rounded-3xl overflow-hidden">
             <table class="w-full text-left text-sm">
-                <thead class="bg-zinc-900/50 text-zinc-500">
+                <thead class="bg-zinc-900/50 text-zinc-500 font-bold uppercase text-[10px]">
                     <tr><th class="p-4">Título</th><th class="p-4">Slug</th><th class="p-4">Ações</th></tr>
                 </thead>
                 <tbody id="lista-links"></tbody>
@@ -51,10 +51,9 @@
     <script>
         const SUPABASE_URL = 'https://ikqetsyatpxkpwwuiovm.supabase.co';
         const SUPABASE_KEY = 'sb_publishable_n3MtfVbOkj3Ubb-yZ8YKFA_iaaeeVhR';
-        const TINY_KEY = 'zem2UXgtLJxz51hoUlEqeIintAtSpEuKYZMzXTZiJvmIkiJ3LfWzqNUbyjYq';
         const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-        // --- LÓGICA DE AUTH ---
+        // Verifica se o usuário já está logado ao carregar a página
         async function checkUser() {
             const { data: { user } } = await _supabase.auth.getUser();
             if (user) {
@@ -68,7 +67,12 @@
         }
 
         async function loginGoogle() {
-            await _supabase.auth.signInWithOAuth({ provider: 'google' });
+            await _supabase.auth.signInWithOAuth({ 
+                provider: 'google',
+                options: {
+                    redirectTo: window.location.origin + window.location.pathname // Garante o retorno ao GitHub Pages
+                }
+            });
         }
 
         async function logout() {
@@ -76,35 +80,55 @@
             location.reload();
         }
 
-        // --- LÓGICA DE LINKS ---
         async function gerarLink() {
             const user = (await _supabase.auth.getUser()).data.user;
-            const payload = {
-                title: document.getElementById('title').value,
-                slug: document.getElementById('slug').value,
-                github_user: document.getElementById('github_user').value,
-                dest: document.getElementById('dest_url').value
-            };
+            if (!user) return alert("Sessão expirada!");
 
-            const resTiny = await fetch(`https://api.tinyurl.com/dev/api-create.php?url=${encodeURIComponent(payload.dest)}`);
-            const tinyUrl = await resTiny.text();
+            const title = document.getElementById('title').value;
+            const slug = document.getElementById('slug').value;
+            const github_user = document.getElementById('github_user').value;
+            const dest = document.getElementById('dest_url').value;
 
-            const { error } = await _supabase.from('links').insert([{
-                slug: payload.slug, title: payload.title, github_user: payload.github_user,
-                destination_url: payload.dest, tiny_url: tinyUrl, user_id: user.id
-            }]);
+            const btn = document.getElementById('btn-save');
+            btn.innerText = "GERANDO...";
+            btn.disabled = true;
 
-            if (!error) { alert("Link Salvo!"); listarLinks(); }
+            // Encurtando via API gratuita do TinyURL
+            try {
+                const resTiny = await fetch(`https://api.tinyurl.com/dev/api-create.php?url=${encodeURIComponent(dest)}`);
+                const tinyUrl = await resTiny.text();
+
+                const { error } = await _supabase.from('links').insert([{
+                    slug: slug, 
+                    title: title, 
+                    github_user: github_user,
+                    destination_url: dest, 
+                    tiny_url: tinyUrl, 
+                    user_id: user.id
+                }]);
+
+                if (error) throw error;
+
+                alert("Link criado com sucesso!");
+                location.reload();
+            } catch (err) {
+                alert("Erro ao criar: " + err.message);
+            } finally {
+                btn.innerText = "CRIAR LINK";
+                btn.disabled = false;
+            }
         }
 
         async function listarLinks() {
-            const { data } = await _supabase.from('links').select('*').order('created_at', { ascending: false });
+            const { data, error } = await _supabase.from('links').select('*').order('created_at', { ascending: false });
+            if (error) return;
+
             document.getElementById('lista-links').innerHTML = data.map(l => `
-                <tr class="border-t border-zinc-800">
-                    <td class="p-4">${l.title}</td>
-                    <td class="p-4 text-zinc-500">/${l.slug}</td>
+                <tr class="border-t border-zinc-800 hover:bg-zinc-900/30 transition">
+                    <td class="p-4 font-bold text-zinc-200">${l.title}</td>
+                    <td class="p-4 text-zinc-500 font-mono text-xs">/${l.slug}</td>
                     <td class="p-4">
-                        <button onclick="window.open('concluir.html?s=${l.slug}')" class="text-blue-500 hover:underline">Ver</button>
+                        <button onclick="window.open('concluir.html?s=${l.slug}')" class="bg-zinc-800 px-4 py-2 rounded-lg text-[10px] font-black uppercase hover:bg-blue-600 transition">Ver Link</button>
                     </td>
                 </tr>
             `).join('');
