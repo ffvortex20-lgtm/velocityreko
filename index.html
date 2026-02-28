@@ -2,38 +2,49 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Velocity | Criar Link</title>
+    <title>Velocity | Login & Dashboard</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-[#050505] text-white font-sans min-h-screen flex items-center justify-center p-4">
-    <div class="w-full max-w-md bg-[#111] border border-zinc-800 p-8 rounded-3xl shadow-2xl">
-        <h1 class="text-2xl font-black italic mb-6 text-blue-500 flex items-center gap-2">
-            <span class="bg-blue-600 text-white px-3 py-1 rounded-xl not-italic text-xl">V</span> VELOCITY ADMIN
-        </h1>
-        
-        <div class="space-y-4">
-            <div>
-                <label class="text-xs font-bold text-zinc-500 uppercase ml-1">Título do Link</label>
-                <input id="title" type="text" placeholder="Ex: Script VIP Grátis" class="w-full p-4 bg-black border border-zinc-800 rounded-2xl focus:border-blue-600 outline-none transition-all">
+<body class="bg-[#050505] text-white p-4 font-sans">
+    
+    <div id="login-screen" class="hidden min-h-screen flex flex-col items-center justify-center">
+        <div class="w-full max-w-sm bg-[#111] border border-zinc-800 p-10 rounded-[2.5rem] text-center shadow-2xl">
+            <div class="w-20 h-20 bg-blue-600 rounded-3xl mx-auto flex items-center justify-center mb-6 shadow-xl shadow-blue-900/30">
+                <span class="text-4xl font-black italic">V</span>
             </div>
-            <div>
-                <label class="text-xs font-bold text-zinc-500 uppercase ml-1">Slug (Nome na URL)</label>
-                <input id="slug" type="text" placeholder="Ex: script-v1" class="w-full p-4 bg-black border border-zinc-800 rounded-2xl focus:border-blue-600 outline-none transition-all">
-            </div>
-            <div>
-                <label class="text-xs font-bold text-zinc-500 uppercase ml-1">Usuário do GitHub</label>
-                <input id="github_user" type="text" placeholder="Ex: ffvortex20" class="w-full p-4 bg-black border border-zinc-800 rounded-2xl focus:border-blue-600 outline-none transition-all">
-            </div>
-            <div>
-                <label class="text-xs font-bold text-zinc-500 uppercase ml-1">URL de Destino Final</label>
-                <input id="dest_url" type="text" placeholder="https://..." class="w-full p-4 bg-black border border-zinc-800 rounded-2xl focus:border-blue-600 outline-none transition-all">
-            </div>
-            
-            <button onclick="gerarLink()" id="btn-save" class="w-full bg-blue-600 py-4 rounded-2xl font-black hover:bg-blue-500 transition-all shadow-lg shadow-blue-900/20 mt-2">
-                CRIAR LINK VELOCITY
+            <h1 class="text-2xl font-bold mb-2">Bem-vindo ao Velocity</h1>
+            <p class="text-zinc-500 text-sm mb-8">Faça login para gerenciar seus links</p>
+            <button onclick="loginGoogle()" class="w-full py-4 bg-white text-black font-bold rounded-2xl flex items-center justify-center gap-3 hover:bg-zinc-200 transition-all">
+                <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" class="w-5">
+                Entrar com Google
             </button>
+        </div>
+    </div>
+
+    <div id="dashboard" class="hidden max-w-4xl mx-auto space-y-8 py-10">
+        <div class="flex justify-between items-center">
+            <h1 class="text-2xl font-black italic text-blue-500">VELOCITY DASHBOARD</h1>
+            <button onclick="logout()" class="text-xs text-zinc-500 hover:text-white uppercase tracking-widest">Sair</button>
+        </div>
+
+        <div class="bg-[#111] border border-zinc-800 p-8 rounded-3xl shadow-2xl">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <input id="title" type="text" placeholder="Título do Link" class="p-4 bg-black border border-zinc-800 rounded-2xl outline-none focus:border-blue-600">
+                <input id="slug" type="text" placeholder="Slug (ex: meu-link)" class="p-4 bg-black border border-zinc-800 rounded-2xl outline-none focus:border-blue-600">
+                <input id="github_user" type="text" placeholder="Usuário GitHub" class="p-4 bg-black border border-zinc-800 rounded-2xl outline-none focus:border-blue-600">
+                <input id="dest_url" type="text" placeholder="URL Destino Final" class="p-4 bg-black border border-zinc-800 rounded-2xl outline-none focus:border-blue-600">
+            </div>
+            <button onclick="gerarLink()" id="btn-save" class="w-full mt-4 bg-blue-600 py-4 rounded-2xl font-black hover:bg-blue-500 transition-all">CRIAR LINK</button>
+        </div>
+
+        <div class="bg-[#111] border border-zinc-800 rounded-3xl overflow-hidden">
+            <table class="w-full text-left text-sm">
+                <thead class="bg-zinc-900/50 text-zinc-500">
+                    <tr><th class="p-4">Título</th><th class="p-4">Slug</th><th class="p-4">Ações</th></tr>
+                </thead>
+                <tbody id="lista-links"></tbody>
+            </table>
         </div>
     </div>
 
@@ -43,41 +54,63 @@
         const TINY_KEY = 'zem2UXgtLJxz51hoUlEqeIintAtSpEuKYZMzXTZiJvmIkiJ3LfWzqNUbyjYq';
         const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-        async function gerarLink() {
-            const btn = document.getElementById('btn-save');
-            btn.innerText = "GERANDO...";
-            btn.disabled = true;
+        // --- LÓGICA DE AUTH ---
+        async function checkUser() {
+            const { data: { user } } = await _supabase.auth.getUser();
+            if (user) {
+                document.getElementById('login-screen').classList.add('hidden');
+                document.getElementById('dashboard').classList.remove('hidden');
+                listarLinks();
+            } else {
+                document.getElementById('login-screen').classList.remove('hidden');
+                document.getElementById('dashboard').classList.add('hidden');
+            }
+        }
 
-            const data = {
+        async function loginGoogle() {
+            await _supabase.auth.signInWithOAuth({ provider: 'google' });
+        }
+
+        async function logout() {
+            await _supabase.auth.signOut();
+            location.reload();
+        }
+
+        // --- LÓGICA DE LINKS ---
+        async function gerarLink() {
+            const user = (await _supabase.auth.getUser()).data.user;
+            const payload = {
                 title: document.getElementById('title').value,
                 slug: document.getElementById('slug').value,
-                user: document.getElementById('github_user').value,
+                github_user: document.getElementById('github_user').value,
                 dest: document.getElementById('dest_url').value
             };
 
-            try {
-                // 1. Encurta na TinyURL
-                const resTiny = await fetch(`https://api.tinyurl.com/dev/api-create.php?url=${encodeURIComponent(data.dest)}`);
-                const tinyUrl = await resTiny.text();
+            const resTiny = await fetch(`https://api.tinyurl.com/dev/api-create.php?url=${encodeURIComponent(payload.dest)}`);
+            const tinyUrl = await resTiny.text();
 
-                // 2. Salva no Supabase
-                const { error } = await _supabase.from('links').insert([{
-                    slug: data.slug,
-                    title: data.title,
-                    github_user: data.user,
-                    destination_url: data.dest,
-                    tiny_url: tinyUrl
-                }]);
+            const { error } = await _supabase.from('links').insert([{
+                slug: payload.slug, title: payload.title, github_user: payload.github_user,
+                destination_url: payload.dest, tiny_url: tinyUrl, user_id: user.id
+            }]);
 
-                if (error) throw error;
-                alert("Link criado! Use: concluir.html?s=" + data.slug);
-            } catch (e) {
-                alert("Erro: " + e.message);
-            } finally {
-                btn.innerText = "CRIAR LINK VELOCITY";
-                btn.disabled = false;
-            }
+            if (!error) { alert("Link Salvo!"); listarLinks(); }
         }
+
+        async function listarLinks() {
+            const { data } = await _supabase.from('links').select('*').order('created_at', { ascending: false });
+            document.getElementById('lista-links').innerHTML = data.map(l => `
+                <tr class="border-t border-zinc-800">
+                    <td class="p-4">${l.title}</td>
+                    <td class="p-4 text-zinc-500">/${l.slug}</td>
+                    <td class="p-4">
+                        <button onclick="window.open('concluir.html?s=${l.slug}')" class="text-blue-500 hover:underline">Ver</button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        checkUser();
     </script>
 </body>
 </html>
