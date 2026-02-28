@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Velocity | Unlock Link</title>
+    <title>Velocity | Aguarde...</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
@@ -11,17 +11,22 @@
 <body class="bg-[#050505] text-white flex items-center justify-center min-h-screen p-4">
     <div class="w-full max-w-sm bg-[#111] border border-zinc-800 rounded-[2.5rem] p-10 text-center relative overflow-hidden shadow-2xl">
         <div id="progress-bar" class="absolute top-0 left-0 h-1 bg-blue-600 transition-all duration-1000" style="width: 0%"></div>
-        <div class="mb-8">
-            <div class="w-20 h-20 bg-blue-600 rounded-3xl mx-auto flex items-center justify-center mb-6 shadow-xl shadow-blue-900/30"><span class="text-4xl font-black italic">V</span></div>
-            <h1 id="link-title" class="text-2xl font-bold uppercase">Carregando...</h1>
-            <p id="status-text" class="text-zinc-500 text-[10px] font-black uppercase tracking-widest mt-3">Ação Requerida</p>
+        
+        <div id="media-container" class="mb-6 flex justify-center">
+            <div id="fallback" class="w-20 h-20 bg-blue-600 rounded-3xl flex items-center justify-center shadow-xl shadow-blue-900/30">
+                <span class="text-4xl font-black italic">V</span>
+            </div>
         </div>
-        <div class="space-y-4">
-            <button id="btn-action" onclick="iniciarTimer()" class="w-full py-5 bg-white text-black rounded-2xl font-bold flex items-center justify-center gap-3 transition-all hover:bg-zinc-200">
-                <i id="action-icon" class="fas fa-link"></i> <span id="action-text">Verificar Link</span>
+
+        <h1 id="link-title" class="text-2xl font-bold uppercase tracking-tight text-white">Carregando...</h1>
+        <p id="status-text" class="text-zinc-500 text-[10px] font-black uppercase tracking-[0.3em] mt-3">Ação Requerida</p>
+
+        <div class="mt-8 space-y-4">
+            <button id="btn-action" onclick="iniciarTimer()" class="w-full py-5 bg-white text-black rounded-2xl font-bold flex items-center justify-center gap-3 hover:bg-zinc-200 transition-all">
+                <i id="action-icon" class="fas fa-link"></i> <span id="action-text">Verificar</span>
             </button>
             <button id="btn-final" onclick="irParaDestino()" disabled class="w-full py-5 bg-zinc-900 text-zinc-600 rounded-2xl font-bold border border-zinc-800 cursor-not-allowed flex items-center justify-center gap-2">
-                <i class="fas fa-lock"></i> <span id="timer-label">BLOQUEADO</span>
+                <i class="fas fa-lock text-xs"></i> <span id="timer-label">BLOQUEADO</span>
             </button>
         </div>
     </div>
@@ -35,41 +40,52 @@
         async function loadLink() {
             const slug = new URLSearchParams(window.location.search).get('s');
             const { data } = await _supabase.from('links').select('*').eq('slug', slug).single();
-            if (data) {
-                linkData = data; document.getElementById('link-title').innerText = data.title;
-                // Contador de Views Real-time
-                await _supabase.from('links').update({ views: (data.views || 0) + 1 }).eq('slug', slug);
-                
-                const ui = { 
-                    whatsapp_group: { t: "Entrar no Grupo WhatsApp", i: "fab fa-whatsapp" },
-                    whatsapp_channel: { t: "Seguir Canal WhatsApp", i: "fab fa-whatsapp" },
-                    youtube: { t: "Inscrever-se no Canal", i: "fab fa-youtube" },
-                    telegram: { t: "Entrar no Telegram", i: "fab fa-telegram" },
-                    link: { t: "Visitar Patrocinador", i: "fas fa-external-link-alt" }
-                };
-                const config = ui[data.link_type] || ui.link;
-                document.getElementById('action-text').innerText = config.t;
-                document.getElementById('action-icon').className = config.i;
+            if (!data) return;
+            linkData = data;
+            document.getElementById('link-title').innerText = data.title;
+            document.getElementById('status-text').innerText = data.status_text || 'Ação Requerida';
+            
+            await _supabase.from('links').update({ views: (data.views || 0) + 1 }).eq('slug', slug);
+
+            if (data.image_url) {
+                const area = document.getElementById('media-container');
+                if (data.image_url.includes('youtube') || data.image_url.includes('youtu.be')) {
+                    let id = data.image_url.split('v=')[1] || data.image_url.split('/').pop();
+                    area.innerHTML = `<iframe class="rounded-2xl w-full aspect-video border border-zinc-800" src="https://www.youtube.com/embed/${id}" frameborder="0"></iframe>`;
+                } else {
+                    area.innerHTML = `<img src="${data.image_url}" class="rounded-3xl w-32 h-32 object-cover border-2 border-blue-600 shadow-lg">`;
+                }
             }
+
+            const ui = { 
+                whatsapp_group: { t: "Entrar no Grupo", i: "fab fa-whatsapp" },
+                whatsapp_channel: { t: "Seguir Canal", i: "fab fa-whatsapp" },
+                instagram: { t: "Seguir no Instagram", i: "fab fa-instagram" },
+                youtube: { t: "Inscrever-se", i: "fab fa-youtube" },
+                tiktok: { t: "Seguir no TikTok", i: "fab fa-tiktok" },
+                telegram: { t: "Entrar no Telegram", i: "fab fa-telegram" },
+                discord: { t: "Entrar no Discord", i: "fab fa-discord" }
+            };
+            const config = ui[data.link_type] || { t: "Verificar Link", i: "fas fa-link" };
+            document.getElementById('action-text').innerText = config.t;
+            document.getElementById('action-icon').className = config.i;
         }
 
         function iniciarTimer() {
             if (timerAtivo) return; window.open(linkData.destination_url, '_blank');
             timerAtivo = true; let time = 8;
-            const interval = setInterval(() => {
+            const iv = setInterval(() => {
                 time--; document.getElementById('timer-label').innerText = `AGUARDE ${time}s...`;
                 document.getElementById('progress-bar').style.width = `${((8-time)/8)*100}%`;
-                if (time <= 0) { 
-                    clearInterval(interval); 
-                    const btn = document.getElementById('btn-final');
-                    btn.disabled = false;
-                    btn.className = "w-full py-5 bg-blue-600 text-white rounded-2xl font-bold cursor-pointer flex items-center justify-center gap-2 shadow-lg shadow-blue-900/40";
-                    btn.innerHTML = `<i class="fas fa-check-circle"></i> ACESSAR AGORA`;
+                if (time <= 0) {
+                    clearInterval(iv);
+                    const b = document.getElementById('btn-final');
+                    b.disabled = false; b.className = "w-full py-5 bg-blue-600 text-white rounded-2xl font-bold cursor-pointer flex items-center justify-center gap-2 shadow-lg shadow-blue-900/40 transition-all";
+                    b.innerHTML = `<i class="fas fa-check-circle"></i> ACESSAR AGORA`;
                     document.getElementById('status-text').innerText = "Link Liberado!";
                 }
             }, 1000);
         }
-
         function irParaDestino() { window.location.href = linkData.tiny_url; }
         loadLink();
     </script>
