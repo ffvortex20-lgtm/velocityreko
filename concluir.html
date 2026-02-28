@@ -3,13 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Velocity | Unlock</title>
+    <title>Velocity | Unlock Link</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
-<body class="bg-[#050505] text-white flex items-center justify-center min-h-screen p-4 font-sans">
-    <div class="w-full max-w-sm bg-[#111] border border-zinc-800 rounded-[2.5rem] p-10 text-center shadow-2xl relative overflow-hidden">
+<body class="bg-[#050505] text-white flex items-center justify-center min-h-screen p-4">
+    <div class="w-full max-w-sm bg-[#111] border border-zinc-800 rounded-[2.5rem] p-10 text-center relative overflow-hidden shadow-2xl">
         <div id="progress-bar" class="absolute top-0 left-0 h-1 bg-blue-600 transition-all duration-1000" style="width: 0%"></div>
         <div class="mb-8">
             <div class="w-20 h-20 bg-blue-600 rounded-3xl mx-auto flex items-center justify-center mb-6 shadow-xl shadow-blue-900/30"><span class="text-4xl font-black italic">V</span></div>
@@ -17,8 +17,8 @@
             <p id="status-text" class="text-zinc-500 text-[10px] font-black uppercase tracking-widest mt-3">Ação Requerida</p>
         </div>
         <div class="space-y-4">
-            <button id="btn-action" onclick="iniciarTimer()" class="w-full py-5 bg-white text-black rounded-2xl font-bold flex items-center justify-center gap-3 transition-all">
-                <i id="action-icon" class="fas fa-link"></i> <span id="action-text">Verificar</span>
+            <button id="btn-action" onclick="iniciarTimer()" class="w-full py-5 bg-white text-black rounded-2xl font-bold flex items-center justify-center gap-3 transition-all hover:bg-zinc-200">
+                <i id="action-icon" class="fas fa-link"></i> <span id="action-text">Verificar Link</span>
             </button>
             <button id="btn-final" onclick="irParaDestino()" disabled class="w-full py-5 bg-zinc-900 text-zinc-600 rounded-2xl font-bold border border-zinc-800 cursor-not-allowed flex items-center justify-center gap-2">
                 <i class="fas fa-lock"></i> <span id="timer-label">BLOQUEADO</span>
@@ -39,8 +39,17 @@
                 linkData = data; document.getElementById('link-title').innerText = data.title;
                 // Contador de Views Real-time
                 await _supabase.from('links').update({ views: (data.views || 0) + 1 }).eq('slug', slug);
-                const ui = { youtube: "Inscrever-se", whatsapp: "Entrar no Grupo", discord: "Entrar no Discord", telegram: "Entrar no Canal", link: "Visitar Link" };
-                document.getElementById('action-text').innerText = ui[data.link_type] || ui.link;
+                
+                const ui = { 
+                    whatsapp_group: { t: "Entrar no Grupo WhatsApp", i: "fab fa-whatsapp" },
+                    whatsapp_channel: { t: "Seguir Canal WhatsApp", i: "fab fa-whatsapp" },
+                    youtube: { t: "Inscrever-se no Canal", i: "fab fa-youtube" },
+                    telegram: { t: "Entrar no Telegram", i: "fab fa-telegram" },
+                    link: { t: "Visitar Patrocinador", i: "fas fa-external-link-alt" }
+                };
+                const config = ui[data.link_type] || ui.link;
+                document.getElementById('action-text').innerText = config.t;
+                document.getElementById('action-icon').className = config.i;
             }
         }
 
@@ -50,17 +59,18 @@
             const interval = setInterval(() => {
                 time--; document.getElementById('timer-label').innerText = `AGUARDE ${time}s...`;
                 document.getElementById('progress-bar').style.width = `${((8-time)/8)*100}%`;
-                if (time <= 0) { clearInterval(interval); liberarBotao(); }
+                if (time <= 0) { 
+                    clearInterval(interval); 
+                    const btn = document.getElementById('btn-final');
+                    btn.disabled = false;
+                    btn.className = "w-full py-5 bg-blue-600 text-white rounded-2xl font-bold cursor-pointer flex items-center justify-center gap-2 shadow-lg shadow-blue-900/40";
+                    btn.innerHTML = `<i class="fas fa-check-circle"></i> ACESSAR AGORA`;
+                    document.getElementById('status-text').innerText = "Link Liberado!";
+                }
             }, 1000);
         }
 
-        function liberarBotao() {
-            const btn = document.getElementById('btn-final');
-            btn.disabled = false; btn.className = "w-full py-5 bg-blue-600 text-white rounded-2xl font-bold cursor-pointer flex items-center justify-center gap-2";
-            btn.innerHTML = `<i class="fas fa-check-circle"></i> ACESSAR AGORA`;
-        }
-
-        function irParaDestino() { window.location.href = linkData.tiny_url || linkData.destination_url; }
+        function irParaDestino() { window.location.href = linkData.tiny_url; }
         loadLink();
     </script>
 </body>
