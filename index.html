@@ -67,13 +67,14 @@
         }
 
         async function loginGoogle() {
-            await _supabase.auth.signInWithOAuth({ 
-                provider: 'google',
-                options: {
-                    redirectTo: window.location.origin + window.location.pathname // Garante o retorno ao GitHub Pages
-                }
-            });
+    await _supabase.auth.signInWithOAuth({ 
+        provider: 'google',
+        options: {
+            // Isso avisa o Supabase: "Me devolva para esta pasta específica!"
+            redirectTo: 'https://ffvortex20-lgtm.github.io/velocityreko/'
         }
+    });
+}
 
         async function logout() {
             await _supabase.auth.signOut();
