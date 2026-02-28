@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Velocity | Criar Link</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-[#050505] text-white font-sans min-h-screen flex items-center justify-center p-4">
+    <div class="w-full max-w-md bg-[#111] border border-zinc-800 p-8 rounded-3xl shadow-2xl">
+        <h1 class="text-2xl font-black italic mb-6 text-blue-500 flex items-center gap-2">
+            <span class="bg-blue-600 text-white px-3 py-1 rounded-xl not-italic text-xl">V</span> VELOCITY ADMIN
+        </h1>
+        
+        <div class="space-y-4">
+            <div>
+                <label class="text-xs font-bold text-zinc-500 uppercase ml-1">Título do Link</label>
+                <input id="title" type="text" placeholder="Ex: Script VIP Grátis" class="w-full p-4 bg-black border border-zinc-800 rounded-2xl focus:border-blue-600 outline-none transition-all">
+            </div>
+            <div>
+                <label class="text-xs font-bold text-zinc-500 uppercase ml-1">Slug (Nome na URL)</label>
+                <input id="slug" type="text" placeholder="Ex: script-v1" class="w-full p-4 bg-black border border-zinc-800 rounded-2xl focus:border-blue-600 outline-none transition-all">
+            </div>
+            <div>
+                <label class="text-xs font-bold text-zinc-500 uppercase ml-1">Usuário do GitHub</label>
+                <input id="github_user" type="text" placeholder="Ex: ffvortex20" class="w-full p-4 bg-black border border-zinc-800 rounded-2xl focus:border-blue-600 outline-none transition-all">
+            </div>
+            <div>
+                <label class="text-xs font-bold text-zinc-500 uppercase ml-1">URL de Destino Final</label>
+                <input id="dest_url" type="text" placeholder="https://..." class="w-full p-4 bg-black border border-zinc-800 rounded-2xl focus:border-blue-600 outline-none transition-all">
+            </div>
+            
+            <button onclick="gerarLink()" id="btn-save" class="w-full bg-blue-600 py-4 rounded-2xl font-black hover:bg-blue-500 transition-all shadow-lg shadow-blue-900/20 mt-2">
+                CRIAR LINK VELOCITY
+            </button>
+        </div>
+    </div>
+
+    <script>
+        const SUPABASE_URL = 'https://ikqetsyatpxkpwwuiovm.supabase.co';
+        const SUPABASE_KEY = 'sb_publishable_n3MtfVbOkj3Ubb-yZ8YKFA_iaaeeVhR';
+        const TINY_KEY = 'zem2UXgtLJxz51hoUlEqeIintAtSpEuKYZMzXTZiJvmIkiJ3LfWzqNUbyjYq';
+        const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        async function gerarLink() {
+            const btn = document.getElementById('btn-save');
+            btn.innerText = "GERANDO...";
+            btn.disabled = true;
+
+            const data = {
+                title: document.getElementById('title').value,
+                slug: document.getElementById('slug').value,
+                user: document.getElementById('github_user').value,
+                dest: document.getElementById('dest_url').value
+            };
+
+            try {
+                // 1. Encurta na TinyURL
+                const resTiny = await fetch(`https://api.tinyurl.com/dev/api-create.php?url=${encodeURIComponent(data.dest)}`);
+                const tinyUrl = await resTiny.text();
+
+                // 2. Salva no Supabase
+                const { error } = await _supabase.from('links').insert([{
+                    slug: data.slug,
+                    title: data.title,
+                    github_user: data.user,
+                    destination_url: data.dest,
+                    tiny_url: tinyUrl
+                }]);
+
+                if (error) throw error;
+                alert("Link criado! Use: concluir.html?s=" + data.slug);
+            } catch (e) {
+                alert("Erro: " + e.message);
+            } finally {
+                btn.innerText = "CRIAR LINK VELOCITY";
+                btn.disabled = false;
+            }
+        }
+    </script>
+</body>
+</html>
