@@ -2,19 +2,19 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
-    <title>Velocity | Login & Dashboard</title>
+    <title>Velocity | Dashboard Pro</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
 <body class="bg-[#050505] text-white p-4 font-sans">
     
     <div id="login-screen" class="hidden min-h-screen flex flex-col items-center justify-center">
         <div class="w-full max-w-sm bg-[#111] border border-zinc-800 p-10 rounded-[2.5rem] text-center shadow-2xl">
-            <div class="w-20 h-20 bg-blue-600 rounded-3xl mx-auto flex items-center justify-center mb-6 shadow-xl shadow-blue-900/30">
+            <div class="w-20 h-20 bg-blue-600 rounded-3xl mx-auto flex items-center justify-center mb-6">
                 <span class="text-4xl font-black italic">V</span>
             </div>
-            <h1 class="text-2xl font-bold mb-2">Bem-vindo ao Velocity</h1>
-            <p class="text-zinc-500 text-sm mb-8">Faça login para gerenciar seus links</p>
+            <h1 class="text-2xl font-bold mb-8">Velocity Login</h1>
             <button onclick="loginGoogle()" class="w-full py-4 bg-white text-black font-bold rounded-2xl flex items-center justify-center gap-3 hover:bg-zinc-200 transition-all">
                 <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" class="w-5">
                 Entrar com Google
@@ -22,26 +22,38 @@
         </div>
     </div>
 
-    <div id="dashboard" class="hidden max-w-4xl mx-auto space-y-8 py-10">
+    <div id="dashboard" class="hidden max-w-5xl mx-auto space-y-8 py-10">
         <div class="flex justify-between items-center">
-            <h1 class="text-2xl font-black italic text-blue-500">VELOCITY DASHBOARD</h1>
-            <button onclick="logout()" class="text-xs text-zinc-500 hover:text-white uppercase tracking-widest font-bold">Sair</button>
+            <h1 class="text-2xl font-black italic text-blue-500 tracking-tighter">VELOCITY <span class="text-white">PRO</span></h1>
+            <button onclick="logout()" class="px-6 py-2 border border-zinc-800 rounded-xl text-xs font-bold hover:bg-red-600 transition-all">SAIR</button>
         </div>
 
         <div class="bg-[#111] border border-zinc-800 p-8 rounded-3xl shadow-2xl">
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <input id="title" type="text" placeholder="Título do Link" class="p-4 bg-black border border-zinc-800 rounded-2xl outline-none focus:border-blue-600 text-white">
-                <input id="slug" type="text" placeholder="Slug (ex: meu-link)" class="p-4 bg-black border border-zinc-800 rounded-2xl outline-none focus:border-blue-600 text-white">
-                <input id="github_user" type="text" placeholder="Usuário GitHub" class="p-4 bg-black border border-zinc-800 rounded-2xl outline-none focus:border-blue-600 text-white">
-                <input id="dest_url" type="text" placeholder="URL Destino Final" class="p-4 bg-black border border-zinc-800 rounded-2xl outline-none focus:border-blue-600 text-white">
+                <input id="title" type="text" placeholder="Título do Link" class="p-4 bg-black border border-zinc-800 rounded-2xl outline-none focus:border-blue-600">
+                <input id="slug" type="text" placeholder="URL Personalizada (slug)" class="p-4 bg-black border border-zinc-800 rounded-2xl outline-none focus:border-blue-600">
+                
+                <select id="link_type" class="p-4 bg-black border border-zinc-800 rounded-2xl outline-none focus:border-blue-600 text-zinc-400">
+                    <option value="link">🌐 Link Comum (Direto)</option>
+                    <option value="whatsapp">💬 WhatsApp (Entrar no Grupo)</option>
+                    <option value="youtube">📺 YouTube (Inscrever-se)</option>
+                    <option value="discord">🎮 Discord (Entrar no Servidor)</option>
+                    <option value="telegram">✈️ Telegram (Canais)</option>
+                </select>
+
+                <input id="dest_url" type="text" placeholder="URL de Destino Final (https://...)" class="p-4 bg-black border border-zinc-800 rounded-2xl outline-none focus:border-blue-600">
             </div>
-            <button onclick="gerarLink()" id="btn-save" class="w-full mt-4 bg-blue-600 py-4 rounded-2xl font-black hover:bg-blue-500 transition-all uppercase tracking-tighter">CRIAR LINK</button>
+            <button onclick="gerarLink()" id="btn-save" class="w-full mt-6 bg-blue-600 py-5 rounded-2xl font-black text-lg hover:bg-blue-500 transition-all">CRIAR LINK MONETIZADO</button>
         </div>
 
-        <div class="bg-[#111] border border-zinc-800 rounded-3xl overflow-hidden">
+        <div class="bg-[#111] border border-zinc-800 rounded-3xl overflow-hidden shadow-2xl">
             <table class="w-full text-left text-sm">
                 <thead class="bg-zinc-900/50 text-zinc-500 font-bold uppercase text-[10px]">
-                    <tr><th class="p-4">Título</th><th class="p-4">Slug</th><th class="p-4">Ações</th></tr>
+                    <tr>
+                        <th class="p-5">Tipo</th>
+                        <th class="p-5">Título / Link</th>
+                        <th class="p-5 text-right">Ações</th>
+                    </tr>
                 </thead>
                 <tbody id="lista-links"></tbody>
             </table>
@@ -53,7 +65,6 @@
         const SUPABASE_KEY = 'sb_publishable_n3MtfVbOkj3Ubb-yZ8YKFA_iaaeeVhR';
         const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-        // Verifica se o usuário já está logado ao carregar a página
         async function checkUser() {
             const { data: { user } } = await _supabase.auth.getUser();
             if (user) {
@@ -62,77 +73,65 @@
                 listarLinks();
             } else {
                 document.getElementById('login-screen').classList.remove('hidden');
-                document.getElementById('dashboard').classList.add('hidden');
             }
         }
 
         async function loginGoogle() {
-    await _supabase.auth.signInWithOAuth({ 
-        provider: 'google',
-        options: {
-            // Isso avisa o Supabase: "Me devolva para esta pasta específica!"
-            redirectTo: 'https://ffvortex20-lgtm.github.io/velocityreko/'
+            await _supabase.auth.signInWithOAuth({ 
+                provider: 'google',
+                options: { redirectTo: 'https://ffvortex20-lgtm.github.io/velocityreko/' }
+            });
         }
-    });
-}
 
-        async function logout() {
-            await _supabase.auth.signOut();
-            location.reload();
-        }
+        async function logout() { await _supabase.auth.signOut(); location.reload(); }
 
         async function gerarLink() {
             const user = (await _supabase.auth.getUser()).data.user;
-            if (!user) return alert("Sessão expirada!");
-
-            const title = document.getElementById('title').value;
-            const slug = document.getElementById('slug').value;
-            const github_user = document.getElementById('github_user').value;
             const dest = document.getElementById('dest_url').value;
-
             const btn = document.getElementById('btn-save');
-            btn.innerText = "GERANDO...";
             btn.disabled = true;
+            btn.innerText = "PROCESSANDO...";
 
-            // Encurtando via API gratuita do TinyURL
             try {
                 const resTiny = await fetch(`https://api.tinyurl.com/dev/api-create.php?url=${encodeURIComponent(dest)}`);
                 const tinyUrl = await resTiny.text();
 
                 const { error } = await _supabase.from('links').insert([{
-                    slug: slug, 
-                    title: title, 
-                    github_user: github_user,
-                    destination_url: dest, 
-                    tiny_url: tinyUrl, 
+                    title: document.getElementById('title').value,
+                    slug: document.getElementById('slug').value,
+                    destination_url: dest,
+                    tiny_url: tinyUrl,
+                    link_type: document.getElementById('link_type').value,
                     user_id: user.id
                 }]);
 
                 if (error) throw error;
-
-                alert("Link criado com sucesso!");
                 location.reload();
-            } catch (err) {
-                alert("Erro ao criar: " + err.message);
-            } finally {
-                btn.innerText = "CRIAR LINK";
-                btn.disabled = false;
-            }
+            } catch (err) { alert("Erro ao criar link."); }
         }
 
         async function listarLinks() {
-            const { data, error } = await _supabase.from('links').select('*').order('created_at', { ascending: false });
-            if (error) return;
-
+            const { data } = await _supabase.from('links').select('*').order('created_at', { ascending: false });
+            const icons = { youtube: 'fa-youtube', whatsapp: 'fa-whatsapp', discord: 'fa-discord', telegram: 'fa-telegram', link: 'fa-link' };
+            
             document.getElementById('lista-links').innerHTML = data.map(l => `
-                <tr class="border-t border-zinc-800 hover:bg-zinc-900/30 transition">
-                    <td class="p-4 font-bold text-zinc-200">${l.title}</td>
-                    <td class="p-4 text-zinc-500 font-mono text-xs">/${l.slug}</td>
-                    <td class="p-4">
-                        <button onclick="window.open('concluir.html?s=${l.slug}')" class="bg-zinc-800 px-4 py-2 rounded-lg text-[10px] font-black uppercase hover:bg-blue-600 transition">Ver Link</button>
+                <tr class="border-t border-zinc-800 hover:bg-zinc-900/30">
+                    <td class="p-5 text-blue-500 text-xl"><i class="fab ${icons[l.link_type || 'link']}"></i></td>
+                    <td class="p-5">
+                        <div class="font-bold">${l.title}</div>
+                        <div class="text-[10px] text-zinc-500">/concluir.html?s=${l.slug}</div>
+                    </td>
+                    <td class="p-5 text-right space-x-2">
+                        <button onclick="copiar('${window.location.href.split('?')[0]}concluir.html?s=${l.slug}')" class="bg-zinc-800 px-4 py-2 rounded-lg text-xs font-bold hover:bg-zinc-700 transition">COPIAR</button>
+                        <button onclick="window.open('concluir.html?s=${l.slug}')" class="bg-blue-600 px-4 py-2 rounded-lg text-xs font-bold hover:bg-blue-500 transition">VER</button>
                     </td>
                 </tr>
             `).join('');
+        }
+
+        function copiar(texto) {
+            navigator.clipboard.writeText(texto);
+            alert("Link copiado!");
         }
 
         checkUser();
