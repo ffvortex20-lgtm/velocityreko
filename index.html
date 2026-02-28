@@ -26,16 +26,17 @@
 
         <div class="bg-[#111] border border-zinc-800 p-8 rounded-3xl shadow-2xl">
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <input id="title" type="text" placeholder="Título" class="p-4 bg-black border border-zinc-800 rounded-2xl outline-none focus:border-blue-600">
+                <input id="title" type="text" placeholder="Título do Link" class="p-4 bg-black border border-zinc-800 rounded-2xl outline-none focus:border-blue-600">
                 <input id="slug" type="text" placeholder="Slug (ex: pack-skins)" class="p-4 bg-black border border-zinc-800 rounded-2xl outline-none focus:border-blue-600">
                 <select id="link_type" class="p-4 bg-black border border-zinc-800 rounded-2xl outline-none focus:border-blue-600 text-zinc-400">
+                    <option value="whatsapp_group">💬 WhatsApp (Grupo)</option>
+                    <option value="whatsapp_channel">📢 WhatsApp (Canal)</option>
+                    <option value="youtube">📺 YouTube (Inscrição)</option>
+                    <option value="telegram">✈️ Telegram (Entrar)</option>
                     <option value="link">🌐 Link Direto</option>
-                    <option value="whatsapp">💬 WhatsApp</option>
-                    <option value="youtube">📺 YouTube</option>
-                    <option value="discord">🎮 Discord</option>
-                    <option value="telegram">✈️ Telegram</option>
                 </select>
-                <input id="dest_url" type="text" placeholder="URL de Destino Final" class="p-4 bg-black border border-zinc-800 rounded-2xl outline-none focus:border-blue-600">
+                <input id="dest_url" type="text" placeholder="URL da Ação (Grupo/Canal/YT)" class="p-4 bg-black border border-zinc-800 rounded-2xl outline-none focus:border-blue-600">
+                <input id="final_url" type="text" placeholder="URL Final (Download/Destino Real)" class="p-4 bg-black border border-zinc-800 rounded-2xl outline-none focus:border-blue-600 md:col-span-2">
             </div>
             <button onclick="gerarLink()" id="btn-save" class="w-full mt-6 bg-blue-600 py-5 rounded-2xl font-black text-lg hover:bg-blue-500 transition-all">CRIAR LINK MONETIZADO</button>
         </div>
@@ -65,14 +66,15 @@
 
         async function listarLinks() {
             const { data } = await _supabase.from('links').select('*').order('created_at', { ascending: false });
-            const icons = { youtube: 'fa-youtube', whatsapp: 'fa-whatsapp', discord: 'fa-discord', telegram: 'fa-telegram', link: 'fa-link' };
+            const icons = { youtube: 'fa-youtube', whatsapp_group: 'fa-whatsapp', whatsapp_channel: 'fa-whatsapp', telegram: 'fa-telegram', link: 'fa-link' };
             document.getElementById('lista-links').innerHTML = data.map(l => `
                 <tr class="border-t border-zinc-800 hover:bg-zinc-900/30">
-                    <td class="p-5 text-blue-500 text-xl"><i class="fab ${icons[l.link_type || 'link']}"></i></td>
+                    <td class="p-5 text-blue-500 text-xl"><i class="fab ${icons[l.link_type] || 'fa-link'}"></i></td>
                     <td class="p-5"><div class="font-bold">${l.title}</div><div class="text-[10px] text-zinc-500">/concluir.html?s=${l.slug}</div></td>
                     <td class="p-5 text-zinc-400 font-mono"><i class="fas fa-eye text-[10px] mr-2"></i>${l.views || 0}</td>
                     <td class="p-5 text-right space-x-2">
                         <button onclick="copiar('${window.location.origin}${window.location.pathname}concluir.html?s=${l.slug}')" class="bg-zinc-800 px-4 py-2 rounded-lg text-[10px] font-bold">COPIAR</button>
+                        <button onclick="window.open('concluir.html?s=${l.slug}')" class="bg-blue-600 px-4 py-2 rounded-lg text-[10px] font-bold">VER</button>
                     </td>
                 </tr>
             `).join('');
@@ -80,24 +82,25 @@
 
         async function gerarLink() {
             const user = (await _supabase.auth.getUser()).data.user;
-            const dest = document.getElementById('dest_url').value;
             const btn = document.getElementById('btn-save');
             btn.innerText = "PROCESSANDO..."; btn.disabled = true;
 
             try {
-                const res = await fetch(`https://api.tinyurl.com/dev/api-create.php?url=${encodeURIComponent(dest)}`);
+                const finalUrl = document.getElementById('final_url').value;
+                const res = await fetch(`https://api.tinyurl.com/dev/api-create.php?url=${encodeURIComponent(finalUrl)}`);
                 const tiny = await res.text();
+                
                 const { error } = await _supabase.from('links').insert([{
                     title: document.getElementById('title').value,
                     slug: document.getElementById('slug').value,
-                    destination_url: dest,
+                    destination_url: document.getElementById('dest_url').value,
                     tiny_url: tiny,
                     link_type: document.getElementById('link_type').value,
                     user_id: user.id
                 }]);
                 if (error) throw error;
                 location.reload();
-            } catch (e) { alert("Erro ao criar link. Verifique o console."); btn.innerText = "CRIAR LINK MONETIZADO"; btn.disabled = false; }
+            } catch (e) { alert("Erro ao criar link. Verifica se o slug já existe."); btn.innerText = "CRIAR LINK MONETIZADO"; btn.disabled = false; }
         }
         function copiar(t) { navigator.clipboard.writeText(t); alert("Link copiado!"); }
         checkUser();
