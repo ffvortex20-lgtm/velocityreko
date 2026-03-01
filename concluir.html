@@ -26,7 +26,7 @@
         /* Estilo para Foto de Arquivo (Upload) */
         .mode-profile { width: 110px; height: 110px; border-radius: 2.2rem; }
 
-        /* Estilo para Links Externos (Pinterest/Mídia) */
+        /* Estilo para Links Externos (Pinterest/Mídia) - Tamanho Maior e Bonito */
         .mode-banner { width: 100%; max-width: 280px; height: 160px; border-radius: 1.5rem; }
 
         #media-container img { width: 100%; height: 100%; object-fit: cover; }
@@ -60,53 +60,67 @@
         async function load() {
             const slug = new URLSearchParams(window.location.search).get('s');
             if (!slug) return;
-            const { data } = await _supabase.from('links').select('*').eq('slug', slug).single();
-            if (!data) return;
-            linkData = data;
             
+            const { data, error } = await _supabase.from('links').select('*').eq('slug', slug).single();
+            if (error || !data) {
+                document.getElementById('link-title').innerText = "ERRO AO CARREGAR";
+                return;
+            }
+            
+            linkData = data;
             document.getElementById('link-title').innerText = data.title;
-            const container = document.getElementById('media-container');
+            document.getElementById('status-text').innerText = "TAREFAS PENDENTES";
 
-            if (data.image_url) {
-                // Se o link contiver "supabase" é upload de arquivo, senão tratamos como link de pin/foto externa
-                const isUpload = data.image_url.includes('supabase');
+            // Lógica da Imagem: Decide o tamanho baseado na origem
+            const container = document.getElementById('media-container');
+            if (data.image_url && data.image_url.trim() !== "") {
+                const isUpload = data.image_url.includes('supabase.co');
                 
                 if (isUpload) {
                     container.className = "mode-profile shadow-2xl shadow-blue-900/10";
                 } else {
                     container.className = "mode-banner shadow-2xl shadow-blue-900/10";
                 }
-                
                 container.innerHTML = `<img src="${data.image_url}" onerror="this.src='https://www.pinterest.com/favicon.ico'">`;
             }
 
+            // Gerar Botões
             const area = document.getElementById('buttons-area');
             const icons = { youtube:'fa-youtube', instagram:'fa-instagram', tiktok:'fa-tiktok', pinterest:'fa-pinterest', whatsapp:'fa-whatsapp', discord:'fa-discord', twitch:'fa-twitch', 'x-twitter':'fa-x-twitter' };
 
-            data.actions.forEach(acao => {
-                const btn = document.createElement('button');
-                btn.className = "w-full py-4 bg-white text-black rounded-[1.2rem] font-black text-[10px] uppercase flex items-center justify-center gap-3";
-                btn.innerHTML = `<i class="fab ${icons[acao.type] || 'fa-link'}"></i> SEGUIR NO ${acao.type.replace('-',' ').toUpperCase()}`;
-                
-                btn.onclick = () => {
-                    window.open(acao.url, '_blank');
-                    btn.className = "w-full py-4 bg-zinc-900 text-blue-500 rounded-[1.2rem] font-black text-[10px] uppercase flex items-center justify-center gap-3 border border-blue-500/20";
-                    btn.innerHTML = `<i class="fas fa-check-circle"></i> CONCLUÍDO`;
-                    btn.disabled = true;
-                    concluidos++;
-                    document.getElementById('progress-bar').style.width = (concluidos / data.actions.length) * 50 + "%";
-                    if (concluidos >= data.actions.length) iniciarTimer();
-                };
-                area.appendChild(btn);
-            });
+            if (data.actions && data.actions.length > 0) {
+                data.actions.forEach(acao => {
+                    const btn = document.createElement('button');
+                    btn.className = "w-full py-4 bg-white text-black rounded-[1.2rem] font-black text-[10px] uppercase flex items-center justify-center gap-3";
+                    btn.innerHTML = `<i class="fab ${icons[acao.type] || 'fa-link'}"></i> SEGUIR NO ${acao.type.replace('-',' ').toUpperCase()}`;
+                    
+                    btn.onclick = () => {
+                        window.open(acao.url, '_blank');
+                        btn.className = "w-full py-4 bg-zinc-900 text-blue-500 rounded-[1.2rem] font-black text-[10px] uppercase flex items-center justify-center gap-3 border border-blue-500/20";
+                        btn.innerHTML = `<i class="fas fa-check-circle"></i> CONCLUÍDO`;
+                        btn.disabled = true;
+                        concluidos++;
+                        
+                        document.getElementById('progress-bar').style.width = (concluidos / data.actions.length) * 50 + "%";
+                        if (concluidos >= data.actions.length) iniciarTimer();
+                    };
+                    area.appendChild(btn);
+                });
+            } else {
+                iniciarTimer();
+            }
+
             _supabase.from('links').update({ views: (data.views || 0) + 1 }).eq('slug', slug).then();
         }
 
         function iniciarTimer() {
             let t = 5;
+            document.getElementById('status-text').innerText = "VERIFICANDO...";
             const iv = setInterval(() => {
-                t--; document.getElementById('timer-label').innerText = `LIBERANDO EM ${t}S...`;
+                t--; 
+                document.getElementById('timer-label').innerText = `LIBERANDO EM ${t}S...`;
                 document.getElementById('progress-bar').style.width = 50 + (((5-t)/5)*50) + "%";
+                
                 if (t <= 0) {
                     clearInterval(iv);
                     const b = document.getElementById('btn-final');
@@ -118,7 +132,13 @@
             }, 1000);
         }
 
-        function finalizar() { if (linkData) window.location.href = linkData.final_url; }
+        function finalizar() { 
+            if (linkData) {
+                let url = linkData.final_url;
+                if(!url.startsWith('http')) url = 'https://' + url;
+                window.location.href = url;
+            }
+        }
         load();
     </script>
 </body>
