@@ -8,45 +8,38 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
 <body class="bg-[#050505] text-white p-6 font-sans">
-    <div id="dashboard" class="max-w-4xl mx-auto space-y-6">
+    <div class="max-w-5xl mx-auto space-y-6">
         <div class="flex justify-between items-center mb-8">
             <h1 class="text-2xl font-black italic text-blue-500 uppercase">VELOCITY <span class="text-white">PRO</span></h1>
-            <button onclick="_supabase.auth.signOut(); location.reload();" class="text-xs font-bold text-zinc-500 hover:text-red-500">SAIR</button>
+            <button onclick="_supabase.auth.signOut(); location.reload();" class="text-xs font-bold text-zinc-500">SAIR</button>
         </div>
 
         <div class="bg-[#111] border border-zinc-800 p-8 rounded-[2.5rem] shadow-2xl space-y-4">
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <input id="title" type="text" placeholder="Título do Link" class="p-4 bg-black border border-zinc-800 rounded-2xl outline-none focus:border-blue-600">
-                <input id="slug" type="text" placeholder="Slug (ex: pack-gratis)" class="p-4 bg-black border border-zinc-800 rounded-2xl outline-none focus:border-blue-600">
-                <input id="status_text" type="text" placeholder="Texto de Status (ex: ETAPA FINAL)" class="p-4 bg-black border border-zinc-800 rounded-2xl outline-none focus:border-blue-600">
-                
+                <input id="slug" type="text" placeholder="Slug (ex: pack-free)" class="p-4 bg-black border border-zinc-800 rounded-2xl outline-none focus:border-blue-600">
+                <input id="status_text" type="text" placeholder="Texto de Status (Ex: ETAPA FINAL)" class="p-4 bg-black border border-zinc-800 rounded-2xl outline-none focus:border-blue-600">
                 <div class="flex flex-col gap-2">
-                    <label class="text-[10px] text-blue-500 font-bold px-2">FOTO (ARQUIVO OU LINK)</label>
-                    <input id="file-upload" type="file" accept="image/*" class="text-xs text-zinc-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:bg-zinc-800 file:text-white hover:file:bg-zinc-700 cursor-pointer">
-                    <input id="image_url" type="text" placeholder="Ou cole o link da foto/YT" class="p-4 bg-black border border-zinc-800 rounded-2xl outline-none focus:border-blue-600 text-xs">
+                    <input id="file-upload" type="file" accept="image/*" class="text-xs text-zinc-500 bg-black p-2 rounded-xl border border-zinc-800">
+                    <input id="image_url" type="text" placeholder="Ou cole link da foto/YT" class="p-3 bg-black border border-zinc-800 rounded-xl outline-none text-xs">
                 </div>
             </div>
 
-            <div class="bg-black/40 p-6 rounded-2xl border border-zinc-800/50">
-                <label class="text-[10px] font-bold text-blue-500 uppercase mb-4 block">Botões de Ação</label>
+            <div class="bg-black/40 p-6 rounded-2xl border border-zinc-800">
                 <div id="actions-list" class="space-y-3">
                     <div class="flex gap-2 action-item">
-                        <select class="type bg-zinc-900 border border-zinc-800 p-3 rounded-xl text-xs outline-none">
-                            <option value="whatsapp">WhatsApp</option>
-                            <option value="youtube">YouTube</option>
-                            <option value="instagram">Instagram</option>
-                        </select>
+                        <select class="type bg-zinc-900 border border-zinc-800 p-3 rounded-xl text-xs"><option value="whatsapp">WhatsApp</option><option value="youtube">YouTube</option><option value="instagram">Instagram</option></select>
                         <input type="text" placeholder="URL da Rede Social" class="url flex-1 bg-zinc-900 border border-zinc-800 p-3 rounded-xl text-xs outline-none">
                     </div>
                 </div>
-                <button onclick="addAcao()" class="mt-4 text-blue-400 text-[10px] font-bold hover:underline">+ ADICIONAR OUTRA AÇÃO</button>
+                <button onclick="addAcao()" class="mt-4 text-blue-400 text-[10px] font-bold hover:underline">+ ADICIONAR AÇÃO</button>
             </div>
 
             <input id="final_url" type="text" placeholder="URL FINAL (Download)" class="w-full p-4 bg-black border border-zinc-800 rounded-2xl outline-none focus:border-blue-600">
-            <button id="btn-save" onclick="gerarLink()" class="w-full bg-blue-600 py-5 rounded-2xl font-black text-lg hover:bg-blue-500 transition-all shadow-lg shadow-blue-900/20">CRIAR LINK MONETIZADO</button>
+            <button id="btn-save" onclick="gerarLink()" class="w-full bg-blue-600 py-5 rounded-2xl font-black text-lg hover:bg-blue-500 transition-all shadow-lg">CRIAR LINK MONETIZADO</button>
         </div>
 
-        <div id="lista-links" class="grid gap-4"></div>
+        <div id="lista-links" class="grid gap-4 mt-10"></div>
     </div>
 
     <script>
@@ -55,71 +48,54 @@
         const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
         function addAcao() {
-            const div = document.createElement('div');
-            div.className = "flex gap-2 action-item mt-2";
-            div.innerHTML = `<select class="type bg-zinc-900 border border-zinc-800 p-3 rounded-xl text-xs outline-none"><option value="whatsapp">WhatsApp</option><option value="youtube">YouTube</option><option value="instagram">Instagram</option></select>
+            const div = document.createElement('div'); div.className = "flex gap-2 action-item mt-2";
+            div.innerHTML = `<select class="type bg-zinc-900 border border-zinc-800 p-3 rounded-xl text-xs"><option value="whatsapp">WhatsApp</option><option value="youtube">YouTube</option><option value="instagram">Instagram</option></select>
                              <input type="text" placeholder="URL da Rede Social" class="url flex-1 bg-zinc-900 border border-zinc-800 p-3 rounded-xl text-xs outline-none">`;
             document.getElementById('actions-list').appendChild(div);
         }
 
         async function gerarLink() {
-            const btn = document.getElementById('btn-save');
-            const fileInput = document.getElementById('file-upload');
-            const finalUrlRaw = document.getElementById('final_url').value;
-            
-            if(!finalUrlRaw) return alert("Insira a URL final!");
-            
-            btn.innerText = "PROCESSANDO..."; btn.disabled = true;
+            const btn = document.getElementById('btn-save'); btn.innerText = "PROCESSANDO..."; btn.disabled = true;
             let imgUrl = document.getElementById('image_url').value;
 
             try {
-                // 1. Upload de Arquivo (Opcional)
-                if (fileInput.files.length > 0) {
-                    const file = fileInput.files[0];
+                const file = document.getElementById('file-upload').files[0];
+                if (file) {
                     const fileName = `${Date.now()}-${file.name}`;
                     const { data: upData, error: upErr } = await _supabase.storage.from('fotos').upload(fileName, file);
-                    if (upErr) throw upErr;
-                    imgUrl = _supabase.storage.from('fotos').getPublicUrl(fileName).data.publicUrl;
+                    if (!upErr) imgUrl = _supabase.storage.from('fotos').getPublicUrl(fileName).data.publicUrl;
                 }
 
-                // 2. TinyURL (Link Curto) - Usando fallback caso falhe
-                let tiny = finalUrlRaw;
-                try {
-                    const res = await fetch(`https://tinyurl.com/api-create.php?url=${encodeURIComponent(finalUrlRaw)}`);
-                    if (res.ok) tiny = await res.text();
-                } catch (e) { console.warn("TinyURL falhou, usando link direto."); }
-
-                // 3. Salvar no Banco
                 const acoes = Array.from(document.querySelectorAll('.action-item')).map(el => ({
-                    type: el.querySelector('.type').value,
-                    url: el.querySelector('.url').value
+                    type: el.querySelector('.type').value, url: el.querySelector('.url').value
                 }));
 
+                let tiny = document.getElementById('final_url').value;
+                try {
+                    const res = await fetch(`https://tinyurl.com/api-create.php?url=${encodeURIComponent(tiny)}`);
+                    if (res.ok) tiny = await res.text();
+                } catch(e) {}
+
                 const { error } = await _supabase.from('links').insert([{
-                    title: document.getElementById('title').value,
-                    slug: document.getElementById('slug').value,
-                    actions: acoes,
-                    tiny_url: tiny,
-                    image_url: imgUrl,
-                    status_text: document.getElementById('status_text').value || 'Ação Requerida',
+                    title: document.getElementById('title').value, slug: document.getElementById('slug').value,
+                    actions: acoes, tiny_url: tiny, image_url: imgUrl, status_text: document.getElementById('status_text').value || 'Ação Requerida',
                     user_id: (await _supabase.auth.getUser()).data.user.id
                 }]);
-
                 if (error) throw error;
                 location.reload();
-            } catch (e) { 
-                alert("Erro ao criar link. Verifique se o Bucket 'fotos' existe no Supabase."); 
-                console.error(e); 
-                btn.innerText = "CRIAR LINK"; btn.disabled = false; 
-            }
+            } catch (e) { alert("Erro ao criar!"); btn.innerText = "CRIAR LINK"; btn.disabled = false; }
         }
 
         async function listar() {
             const { data } = await _supabase.from('links').select('*').order('created_at', {ascending: false});
             document.getElementById('lista-links').innerHTML = data.map(l => `
-                <div class="bg-[#111] p-6 rounded-2xl border border-zinc-800 flex justify-between items-center">
-                    <div><h3 class="font-bold">${l.title}</h3><p class="text-[10px] text-zinc-500">slug: ${l.slug}</p></div>
-                    <button onclick="navigator.clipboard.writeText('${window.location.origin}${window.location.pathname}concluir.html?s=${l.slug}'); alert('Copiado!')" class="bg-zinc-800 px-4 py-2 rounded-lg text-[10px] font-bold">COPIAR</button>
+                <div class="bg-[#111] p-6 rounded-2xl border border-zinc-800 flex justify-between items-center shadow-lg">
+                    <div><h3 class="font-bold">${l.title}</h3><p class="text-[10px] text-zinc-500 italic">slug: ${l.slug}</p></div>
+                    <div class="flex items-center gap-3">
+                        <span class="text-xs text-blue-500 font-bold bg-blue-500/10 px-3 py-1 rounded-full"><i class="fas fa-eye mr-1"></i>${l.views || 0}</span>
+                        <button onclick="window.open('concluir.html?s=${l.slug}')" class="bg-zinc-800 px-4 py-2 rounded-lg text-[10px] font-bold">VER SITE</button>
+                        <button onclick="navigator.clipboard.writeText('${window.location.origin}${window.location.pathname.replace('index.html','')}concluir.html?s=${l.slug}'); alert('Copiado!')" class="bg-blue-600 px-4 py-2 rounded-lg text-[10px] font-bold">COPIAR</button>
+                    </div>
                 </div>
             `).join('');
         }
