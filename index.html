@@ -7,45 +7,41 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
-<body class="bg-[#050505] text-white p-4 font-sans">
-    <div id="dashboard" class="max-w-5xl mx-auto space-y-8 py-10">
-        <div class="flex justify-between items-center">
-            <h1 class="text-2xl font-black italic text-blue-500 uppercase tracking-tighter">VELOCITY <span class="text-white">PRO</span></h1>
-            <button onclick="_supabase.auth.signOut(); location.reload();" class="px-6 py-2 border border-zinc-800 rounded-xl text-xs font-bold hover:bg-red-600 transition-all">SAIR</button>
+<body class="bg-[#050505] text-white p-6 font-sans">
+    <div id="dashboard" class="max-w-4xl mx-auto space-y-6">
+        <div class="flex justify-between items-center mb-8">
+            <h1 class="text-2xl font-black italic text-blue-500 uppercase">VELOCITY <span class="text-white">PRO</span></h1>
+            <button onclick="_supabase.auth.signOut(); location.reload();" class="text-xs font-bold text-zinc-500 hover:text-red-500">SAIR</button>
         </div>
 
-        <div class="bg-[#111] border border-zinc-800 p-8 rounded-3xl shadow-2xl">
+        <div class="bg-[#111] border border-zinc-800 p-8 rounded-[2rem] shadow-2xl space-y-4">
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <input id="title" type="text" placeholder="Título (ex: Pack de Skins)" class="p-4 bg-black border border-zinc-800 rounded-2xl outline-none focus:border-blue-600">
-                <input id="slug" type="text" placeholder="Slug único (ex: skins-free)" class="p-4 bg-black border border-zinc-800 rounded-2xl outline-none focus:border-blue-600">
-                
-                <select id="link_type" class="p-4 bg-black border border-zinc-800 rounded-2xl outline-none focus:border-blue-600 text-zinc-400">
-                    <option value="whatsapp_group">💬 WhatsApp (Grupo)</option>
-                    <option value="whatsapp_channel">📢 WhatsApp (Canal)</option>
-                    <option value="instagram">📸 Instagram (Seguir)</option>
-                    <option value="youtube">📺 YouTube (Inscrição)</option>
-                    <option value="tiktok">🎵 TikTok (Seguir)</option>
-                    <option value="telegram">✈️ Telegram (Entrar)</option>
-                    <option value="discord">🎮 Discord (Entrar)</option>
-                    <option value="link">🌐 Link Direto</option>
-                </select>
-
+                <input id="title" type="text" placeholder="Título do Link" class="p-4 bg-black border border-zinc-800 rounded-2xl outline-none focus:border-blue-600">
+                <input id="slug" type="text" placeholder="Slug (ex: pack-gratis)" class="p-4 bg-black border border-zinc-800 rounded-2xl outline-none focus:border-blue-600">
                 <input id="status_text" type="text" placeholder="Texto de Status (ex: ETAPA FINAL)" class="p-4 bg-black border border-zinc-800 rounded-2xl outline-none focus:border-blue-600">
-                <input id="dest_url" type="text" placeholder="URL da Ação (Link do Grupo/Perfil)" class="p-4 bg-black border border-zinc-800 rounded-2xl outline-none focus:border-blue-600 md:col-span-2">
-                <input id="image_url" type="text" placeholder="Link da Foto (Pinterest) ou Vídeo (YouTube)" class="p-4 bg-black border border-zinc-800 rounded-2xl outline-none focus:border-blue-600 md:col-span-2">
-                <input id="final_url" type="text" placeholder="URL Final de Download" class="p-4 bg-black border border-zinc-800 rounded-2xl outline-none focus:border-blue-600 md:col-span-2">
+                <input id="image_url" type="text" placeholder="Link da Foto (Pinterest) ou Vídeo (YT)" class="p-4 bg-black border border-zinc-800 rounded-2xl outline-none focus:border-blue-600">
             </div>
-            <button onclick="gerarLink()" id="btn-save" class="w-full mt-6 bg-blue-600 py-5 rounded-2xl font-black text-lg hover:bg-blue-500 transition-all shadow-lg shadow-blue-900/20">CRIAR LINK MONETIZADO</button>
+
+            <div class="bg-black/40 p-6 rounded-2xl border border-zinc-800/50">
+                <label class="text-[10px] font-bold text-blue-500 uppercase mb-4 block">Botões de Ação</label>
+                <div id="actions-list" class="space-y-3">
+                    <div class="flex gap-2 action-item">
+                        <select class="type bg-zinc-900 border border-zinc-800 p-3 rounded-xl text-xs outline-none">
+                            <option value="whatsapp">WhatsApp</option>
+                            <option value="youtube">YouTube</option>
+                            <option value="instagram">Instagram</option>
+                        </select>
+                        <input type="text" placeholder="URL da Rede Social" class="url flex-1 bg-zinc-900 border border-zinc-800 p-3 rounded-xl text-xs outline-none">
+                    </div>
+                </div>
+                <button onclick="addAcao()" class="mt-4 text-blue-400 text-[10px] font-bold hover:underline">+ ADICIONAR OUTRA AÇÃO</button>
+            </div>
+
+            <input id="final_url" type="text" placeholder="URL FINAL (Download)" class="w-full p-4 bg-black border border-zinc-800 rounded-2xl outline-none focus:border-blue-600">
+            <button id="btn-save" onclick="gerarLink()" class="w-full bg-blue-600 py-5 rounded-2xl font-black text-lg hover:bg-blue-500 transition-all shadow-lg shadow-blue-900/20">CRIAR LINK MONETIZADO</button>
         </div>
 
-        <div class="bg-[#111] border border-zinc-800 rounded-3xl overflow-hidden">
-            <table class="w-full text-left text-sm">
-                <thead class="bg-zinc-900/50 text-zinc-500 font-bold uppercase text-[10px]">
-                    <tr><th class="p-5">Rede</th><th class="p-5">Título</th><th class="p-5">Views</th><th class="p-5 text-right">Ações</th></tr>
-                </thead>
-                <tbody id="lista-links"></tbody>
-            </table>
-        </div>
+        <div id="lista-links" class="grid gap-4"></div>
     </div>
 
     <script>
@@ -53,50 +49,55 @@
         const SUPABASE_KEY = 'sb_publishable_n3MtfVbOkj3Ubb-yZ8YKFA_iaaeeVhR';
         const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-        async function listarLinks() {
-            const { data } = await _supabase.from('links').select('*').order('created_at', { ascending: false });
-            const icons = { youtube: 'fa-youtube', whatsapp_group: 'fa-whatsapp', whatsapp_channel: 'fa-whatsapp', instagram: 'fa-instagram', tiktok: 'fa-tiktok', telegram: 'fa-telegram', discord: 'fa-discord', link: 'fa-link' };
-            
-            document.getElementById('lista-links').innerHTML = data.map(l => `
-                <tr class="border-t border-zinc-800 hover:bg-zinc-900/30 transition">
-                    <td class="p-5 text-blue-500 text-xl"><i class="fab ${icons[l.link_type] || 'fa-link'}"></i></td>
-                    <td class="p-5 font-bold">${l.title}<br><span class="text-[10px] text-zinc-500 italic">slug: ${l.slug}</span></td>
-                    <td class="p-5 text-zinc-400 font-mono text-xs"><i class="fas fa-eye mr-2"></i>${l.views || 0}</td>
-                    <td class="p-5 text-right space-x-2">
-                        <button onclick="copiar('${window.location.origin}${window.location.pathname}concluir.html?s=${l.slug}')" class="bg-zinc-800 px-4 py-2 rounded-lg text-[10px] font-bold">COPIAR</button>
-                        <button onclick="window.open('concluir.html?s=${l.slug}')" class="bg-blue-600 px-4 py-2 rounded-lg text-[10px] font-bold">VER</button>
-                    </td>
-                </tr>
-            `).join('');
+        function addAcao() {
+            const div = document.createElement('div');
+            div.className = "flex gap-2 action-item mt-2";
+            div.innerHTML = `<select class="type bg-zinc-900 border border-zinc-800 p-3 rounded-xl text-xs outline-none"><option value="whatsapp">WhatsApp</option><option value="youtube">YouTube</option><option value="instagram">Instagram</option></select>
+                             <input type="text" placeholder="URL da Rede Social" class="url flex-1 bg-zinc-900 border border-zinc-800 p-3 rounded-xl text-xs outline-none">`;
+            document.getElementById('actions-list').appendChild(div);
         }
 
         async function gerarLink() {
             const user = (await _supabase.auth.getUser()).data.user;
             const btn = document.getElementById('btn-save');
-            btn.innerText = "PROCESSANDO..."; btn.disabled = true;
+            btn.innerText = "GERANDO..."; btn.disabled = true;
+
+            const acoes = Array.from(document.querySelectorAll('.action-item')).map(el => ({
+                type: el.querySelector('.type').value,
+                url: el.querySelector('.url').value
+            }));
 
             try {
-                const final = document.getElementById('final_url').value;
-                const res = await fetch(`https://api.tinyurl.com/dev/api-create.php?url=${encodeURIComponent(final)}`);
+                const res = await fetch(`https://api.tinyurl.com/dev/api-create.php?url=${encodeURIComponent(document.getElementById('final_url').value)}`);
                 const tiny = await res.text();
 
                 const { error } = await _supabase.from('links').insert([{
                     title: document.getElementById('title').value,
                     slug: document.getElementById('slug').value,
-                    destination_url: document.getElementById('dest_url').value,
+                    actions: acoes,
                     tiny_url: tiny,
-                    link_type: document.getElementById('link_type').value,
                     image_url: document.getElementById('image_url').value,
                     status_text: document.getElementById('status_text').value || 'Ação Requerida',
                     user_id: user.id
                 }]);
-
                 if (error) throw error;
                 location.reload();
-            } catch (e) { alert("Erro ao criar link. Verifique o console."); btn.innerText = "CRIAR LINK"; btn.disabled = false; }
+            } catch (e) { alert("Erro ao criar link. Verifique o console."); console.error(e); btn.innerText = "CRIAR LINK"; btn.disabled = false; }
         }
-        function copiar(t) { navigator.clipboard.writeText(t); alert("Link copiado!"); }
-        listarLinks();
+
+        async function listar() {
+            const { data } = await _supabase.from('links').select('*').order('created_at', {ascending: false});
+            document.getElementById('lista-links').innerHTML = data.map(l => `
+                <div class="bg-[#111] p-6 rounded-2xl border border-zinc-800 flex justify-between items-center shadow-lg">
+                    <div><h3 class="font-bold">${l.title}</h3><p class="text-[10px] text-zinc-500 italic">slug: ${l.slug}</p></div>
+                    <div class="flex items-center gap-4">
+                        <span class="text-xs text-zinc-400 font-mono"><i class="fas fa-eye mr-1"></i>${l.views}</span>
+                        <button onclick="navigator.clipboard.writeText('${window.location.origin}${window.location.pathname}concluir.html?s=${l.slug}'); alert('Copiado!')" class="bg-zinc-800 px-4 py-2 rounded-lg text-[10px] font-bold">COPIAR</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+        listar();
     </script>
 </body>
 </html>
