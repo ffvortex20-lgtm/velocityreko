@@ -12,7 +12,7 @@
         <div class="flex justify-between items-center mb-8">
             <h1 class="text-2xl font-black italic text-blue-500 uppercase tracking-tighter">VELOCITY <span class="text-white">PRO</span></h1>
             <div class="flex gap-4 items-center">
-                <span id="user-name" class="text-[10px] text-zinc-500 font-bold hidden"></span>
+                <span id="user-email" class="text-[10px] text-zinc-500 font-bold hidden"></span>
                 <button id="auth-btn" onclick="handleAuth()" class="text-xs font-bold text-blue-500 hover:text-white border border-blue-500/20 px-4 py-2 rounded-xl transition-all">LOGAR COM GOOGLE</button>
             </div>
         </div>
@@ -26,7 +26,7 @@
                 <div class="flex flex-col gap-2">
                     <label class="text-[10px] text-blue-500 font-bold px-2 uppercase">Mídia (Upload ou Link)</label>
                     <input id="file-upload" type="file" accept="image/*" class="text-xs text-zinc-500 bg-black p-2 rounded-xl border border-zinc-800 cursor-pointer">
-                    <input id="image_url" type="text" placeholder="Ou cole link da foto/YouTube" class="p-3 bg-black border border-zinc-800 rounded-xl outline-none text-xs text-blue-400">
+                    <input id="image_url" type="text" placeholder="Ou link da foto/YouTube" class="p-3 bg-black border border-zinc-800 rounded-xl outline-none text-xs text-blue-400">
                 </div>
             </div>
 
@@ -34,9 +34,9 @@
                 <div id="actions-list" class="space-y-3">
                     <div class="flex gap-2 action-item">
                         <select class="type bg-zinc-900 border border-zinc-800 p-3 rounded-xl text-xs outline-none">
-                            <option value="whatsapp">WhatsApp</option>
-                            <option value="youtube">YouTube</option>
-                            <option value="instagram">Instagram</option>
+                            <option value="youtube">YouTube (Inscritos)</option>
+                            <option value="whatsapp">WhatsApp (Grupo/Contato)</option>
+                            <option value="instagram">Instagram (Seguir)</option>
                             <option value="tiktok">TikTok</option>
                         </select>
                         <input type="text" placeholder="URL da Rede Social" class="url flex-1 bg-zinc-900 border border-zinc-800 p-3 rounded-xl text-xs outline-none">
@@ -45,12 +45,12 @@
                 <button onclick="addAcao()" class="mt-4 text-blue-400 text-[10px] font-bold hover:underline">+ ADICIONAR AÇÃO</button>
             </div>
 
-            <input id="final_url" type="text" placeholder="URL FINAL DE DESTINO" class="w-full p-4 bg-black border border-zinc-800 rounded-2xl outline-none focus:border-blue-600">
+            <input id="final_url" type="text" placeholder="URL FINAL (Onde o usuário vai chegar)" class="w-full p-4 bg-black border border-zinc-800 rounded-2xl outline-none focus:border-blue-600">
             <button id="btn-save" onclick="gerarLink()" class="w-full bg-blue-600 py-5 rounded-2xl font-black text-lg hover:bg-blue-500 transition-all shadow-lg shadow-blue-900/20">CRIAR LINK MONETIZADO</button>
         </div>
 
         <div class="mt-12">
-            <h2 class="text-sm font-bold text-zinc-500 mb-4 uppercase tracking-widest px-2">Links Ativos</h2>
+            <h2 class="text-sm font-bold text-zinc-500 mb-4 uppercase tracking-widest px-2">Meus Links Ativos</h2>
             <div id="lista-links" class="grid gap-4"></div>
         </div>
     </div>
@@ -60,42 +60,32 @@
         const SUPABASE_KEY = 'sb_publishable_n3MtfVbOkj3Ubb-yZ8YKFA_iaaeeVhR';
         const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-        // --- SISTEMA DE AUTH ---
+        // --- AUTH ---
         async function checkUser() {
             const { data: { user } } = await _supabase.auth.getUser();
             const btn = document.getElementById('auth-btn');
-            const nameSpan = document.getElementById('user-name');
-            
             if (user) {
                 btn.innerText = "SAIR";
-                btn.classList.replace('text-blue-500', 'text-red-500');
-                nameSpan.innerText = user.email;
-                nameSpan.classList.remove('hidden');
+                document.getElementById('user-email').innerText = user.email;
+                document.getElementById('user-email').classList.remove('hidden');
                 listar();
             } else {
                 btn.innerText = "LOGAR COM GOOGLE";
-                nameSpan.classList.add('hidden');
-                document.getElementById('lista-links').innerHTML = `<p class="text-zinc-600 text-xs text-center py-10">Faça login para gerenciar links.</p>`;
+                document.getElementById('lista-links').innerHTML = `<p class="text-zinc-600 text-[10px] text-center py-10">FAÇA LOGIN PARA GERENCIAR SEUS LINKS</p>`;
             }
         }
 
         async function handleAuth() {
             const { data: { user } } = await _supabase.auth.getUser();
-            if (user) {
-                await _supabase.auth.signOut();
-                location.reload();
-            } else {
-                await _supabase.auth.signInWithOAuth({
-                    provider: 'google',
-                    options: { redirectTo: window.location.href }
-                });
-            }
+            if (user) { await _supabase.auth.signOut(); location.reload(); }
+            else { await _supabase.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: window.location.href } }); }
         }
 
+        // --- FUNÇÕES ---
         function addAcao() {
             const div = document.createElement('div');
             div.className = "flex gap-2 action-item mt-2";
-            div.innerHTML = `<select class="type bg-zinc-900 border border-zinc-800 p-3 rounded-xl text-xs outline-none"><option value="whatsapp">WhatsApp</option><option value="youtube">YouTube</option><option value="instagram">Instagram</option><option value="tiktok">TikTok</option></select>
+            div.innerHTML = `<select class="type bg-zinc-900 border border-zinc-800 p-3 rounded-xl text-xs outline-none"><option value="youtube">YouTube</option><option value="whatsapp">WhatsApp</option><option value="instagram">Instagram</option><option value="tiktok">TikTok</option></select>
                              <input type="text" placeholder="URL da Rede Social" class="url flex-1 bg-zinc-900 border border-zinc-800 p-3 rounded-xl text-xs outline-none">
                              <button onclick="this.parentElement.remove()" class="text-red-500 px-2"><i class="fas fa-trash"></i></button>`;
             document.getElementById('actions-list').appendChild(div);
@@ -105,15 +95,13 @@
             const btn = document.getElementById('btn-save');
             const originalText = btn.innerText;
             
-            // 1. Verificar Auth antes de tudo
             const { data: { user } } = await _supabase.auth.getUser();
-            if (!user) {
-                alert("Erro: Você precisa estar logado com o Google para criar links!");
-                return;
-            }
+            if (!user) return alert("Faça login com Google primeiro!");
 
-            const slug = document.getElementById('slug').value.trim();
-            if(!slug) return alert("O Slug é obrigatório!");
+            const slug = document.getElementById('slug').value.trim().replace(/\s+/g, '-').toLowerCase();
+            const final_url = document.getElementById('final_url').value.trim();
+
+            if(!slug || !final_url) return alert("Slug e URL Final são obrigatórios!");
 
             btn.innerText = "PROCESSANDO..."; btn.disabled = true;
 
@@ -122,69 +110,62 @@
                 const file = document.getElementById('file-upload').files[0];
                 
                 if (file) {
-                    const fileName = `${Date.now()}-${file.name}`;
-                    const { data: upData, error: upErr } = await _supabase.storage.from('fotos').upload(fileName, file);
+                    const fileName = `public/${Date.now()}-${file.name}`;
+                    const { error: upErr } = await _supabase.storage.from('fotos').upload(fileName, file);
                     if (upErr) throw upErr;
                     imgUrl = _supabase.storage.from('fotos').getPublicUrl(fileName).data.publicUrl;
                 }
 
-                const acoes = Array.from(document.querySelectorAll('.action-item'))
-                    .map(el => ({
-                        type: el.querySelector('.type').value, 
-                        url: el.querySelector('.url').value
-                    })).filter(a => a.url.length > 5);
+                const acoes = Array.from(document.querySelectorAll('.action-item')).map(el => ({
+                    type: el.querySelector('.type').value, 
+                    url: el.querySelector('.url').value
+                })).filter(a => a.url.length > 5);
 
                 const { error } = await _supabase.from('links').insert([{
+                    user_id: user.id,
                     title: document.getElementById('title').value || 'Sem Título',
                     slug: slug,
                     actions: acoes, 
-                    tiny_url: document.getElementById('final_url').value, 
+                    final_url: final_url, // Corrigido para bater com sua tabela
                     image_url: imgUrl,
-                    status_text: document.getElementById('status_text').value || 'Ação Requerida',
-                    user_id: user.id
+                    status_text: document.getElementById('status_text').value || 'Ação Requerida'
                 }]);
 
                 if (error) throw error;
                 location.reload();
 
             } catch (e) {
-                console.error(e);
-                alert("Erro: " + (e.message || "Falha na conexão"));
+                alert("Erro: " + e.message);
                 btn.innerText = originalText; btn.disabled = false;
             }
         }
 
         async function listar() {
             const { data: { user } } = await _supabase.auth.getUser();
-            if(!user) return;
-
             const { data } = await _supabase.from('links').select('*').eq('user_id', user.id).order('created_at', {ascending: false});
             const container = document.getElementById('lista-links');
             
-            if (!data || data.length === 0) {
-                container.innerHTML = `<p class="text-zinc-600 text-xs text-center py-10">Nenhum link ativo.</p>`;
-                return;
-            }
-            container.innerHTML = data.map(l => `
+            if (!data || data.length === 0) return;
+
+            container.innerHTML = data.map(l => {
+                const linkPublico = `${window.location.origin}${window.location.pathname.replace('index.html','')}concluir.html?s=${l.slug}`;
+                return `
                 <div class="bg-[#111] p-6 rounded-2xl border border-zinc-800 flex justify-between items-center shadow-lg">
                     <div>
                         <h3 class="font-bold text-white">${l.title}</h3>
-                        <p class="text-[10px] text-zinc-500 italic">slug: ${l.slug}</p>
+                        <p class="text-[10px] text-zinc-500 italic">velocitypro.com/${l.slug}</p>
                     </div>
                     <div class="flex items-center gap-3">
                         <span class="text-xs text-blue-500 font-black bg-blue-500/10 px-3 py-1 rounded-full"><i class="fas fa-eye mr-1"></i>${l.views || 0}</span>
-                        <button onclick="navigator.clipboard.writeText('${window.location.origin}${window.location.pathname.replace('index.html','')}concluir.html?s=${l.slug}'); alert('Copiado!')" class="bg-blue-600 px-4 py-2 rounded-lg text-[10px] font-bold">COPIAR</button>
-                        <button onclick="deletarLink('${l.id}')" class="bg-red-900/30 text-red-500 p-2 rounded-lg hover:bg-red-500 hover:text-white transition-all"><i class="fas fa-trash"></i></button>
+                        <button onclick="copy('${linkPublico}')" class="bg-blue-600 px-4 py-2 rounded-lg text-[10px] font-bold hover:bg-blue-500">COPIAR</button>
+                        <button onclick="deletar('${l.id}')" class="bg-red-900/20 text-red-500 p-2 rounded-lg hover:bg-red-500 hover:text-white transition-all"><i class="fas fa-trash"></i></button>
                     </div>
                 </div>
-            `).join('');
+            `}).join('');
         }
 
-        async function deletarLink(id) {
-            if(!confirm("Tem certeza?")) return;
-            await _supabase.from('links').delete().eq('id', id);
-            listar();
-        }
+        function copy(t) { navigator.clipboard.writeText(t); alert("Link Copiado!"); }
+        async function deletar(id) { if(confirm("Apagar link?")) { await _supabase.from('links').delete().eq('id', id); listar(); } }
 
         checkUser();
     </script>
