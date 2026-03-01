@@ -31,7 +31,6 @@
 
     <div id="dashboard-screen" class="hidden min-h-screen p-4 md:p-10">
         <div class="max-w-5xl mx-auto space-y-10">
-            
             <div class="flex justify-between items-center glass p-8 rounded-[3rem] border border-zinc-800/50 animate-up">
                 <div>
                     <h1 class="text-2xl font-black italic gradient-text tracking-tighter">VELOCITY PRO</h1>
@@ -45,12 +44,12 @@
                     <div class="space-y-4">
                         <label class="text-[10px] font-black text-blue-500 ml-4 uppercase tracking-widest">Configuração</label>
                         <input id="title" type="text" placeholder="Título do Link" class="w-full p-5 bg-black border border-zinc-800 rounded-[2rem] outline-none focus:border-blue-500">
-                        <input id="slug" type="text" placeholder="Slug (ex: pack-skins)" class="w-full p-5 bg-black border border-zinc-800 rounded-[2rem] outline-none focus:border-blue-500">
+                        <input id="slug" type="text" placeholder="Slug (Ex: pack-fotos)" class="w-full p-5 bg-black border border-zinc-800 rounded-[2rem] outline-none focus:border-blue-500">
                     </div>
                     <div class="space-y-4">
-                        <label class="text-[10px] font-black text-blue-500 ml-4 uppercase tracking-widest">Mídia (Upload ou URL)</label>
+                        <label class="text-[10px] font-black text-blue-500 ml-4 uppercase tracking-widest">Mídia (Pinterest/Img/YouTube)</label>
                         <input id="file-upload" type="file" accept="image/*" class="w-full text-xs text-zinc-500 bg-black p-4 rounded-[2rem] border border-zinc-800 cursor-pointer">
-                        <input id="image_url" type="text" placeholder="Ou cole a URL da imagem aqui" class="w-full p-5 bg-black border border-zinc-800 rounded-[2rem] outline-none text-xs text-blue-400">
+                        <input id="image_url" type="text" placeholder="Link do Pin ou Foto" class="w-full p-5 bg-black border border-zinc-800 rounded-[2rem] outline-none text-xs text-blue-400">
                     </div>
                 </div>
 
@@ -61,8 +60,8 @@
                             <select class="type bg-black border border-zinc-800 p-5 rounded-[1.5rem] text-xs font-bold outline-none">
                                 <option value="youtube">YouTube</option>
                                 <option value="instagram">Instagram</option>
+                                <option value="pinterest">Pinterest</option>
                                 <option value="tiktok">TikTok</option>
-                                <option value="whatsapp">WhatsApp</option>
                             </select>
                             <input type="text" placeholder="URL da Rede Social" class="url flex-1 bg-black border border-zinc-800 p-5 rounded-[1.5rem] text-xs outline-none">
                         </div>
@@ -72,7 +71,7 @@
 
                 <div class="space-y-4">
                     <label class="text-[10px] font-black text-green-500 ml-4 uppercase tracking-widest">Link de Download Final</label>
-                    <input id="final_url" type="text" placeholder="https://seu-arquivo-para-download.com" class="w-full p-6 bg-black border border-zinc-800 rounded-[2.5rem] outline-none font-bold text-blue-400">
+                    <input id="final_url" type="text" placeholder="https://seu-link.com" class="w-full p-6 bg-black border border-zinc-800 rounded-[2.5rem] outline-none font-bold text-blue-400">
                 </div>
 
                 <button id="btn-save" onclick="gerarLink()" class="w-full bg-blue-600 py-7 rounded-[2.5rem] font-black text-xl hover:bg-blue-500 transition-all active:scale-[0.98]">
@@ -113,7 +112,7 @@
             div.className = "flex gap-3 action-item mt-2 animate-up";
             div.innerHTML = `
                 <select class="type bg-black border border-zinc-800 p-5 rounded-[1.5rem] text-xs font-bold outline-none px-6">
-                    <option value="youtube">YouTube</option><option value="instagram">Instagram</option><option value="tiktok">TikTok</option><option value="whatsapp">WhatsApp</option>
+                    <option value="youtube">YouTube</option><option value="instagram">Instagram</option><option value="pinterest">Pinterest</option><option value="tiktok">TikTok</option>
                 </select>
                 <input type="text" placeholder="URL da Rede Social" class="url flex-1 bg-black border border-zinc-800 p-5 rounded-[1.5rem] text-xs outline-none">
                 <button onclick="this.parentElement.remove()" class="text-red-500 px-4"><i class="fas fa-trash-alt"></i></button>`;
@@ -123,21 +122,23 @@
         async function gerarLink() {
             const btn = document.getElementById('btn-save');
             const { data: { user } } = await _supabase.auth.getUser();
-            if(!user) return;
+            if(!user) return alert("Logue primeiro!");
 
             const slug = document.getElementById('slug').value.trim().toLowerCase().replace(/\s+/g, '-');
             const final = document.getElementById('final_url').value.trim();
-            if(!slug || !final) return alert("Preencha o Slug e a URL Final!");
+            if(!slug || !final) return alert("Slug e Link Final são obrigatórios!");
 
             btn.innerText = "PROCESSANDO..."; btn.disabled = true;
 
             try {
-                // 1. TinyURL
+                // Verificação de duplicata manual para evitar o erro constraint
+                const { data: check } = await _supabase.from('links').select('slug').eq('slug', slug).single();
+                if(check) throw new Error("Esse Slug já existe. Tente outro nome!");
+
                 const urlEtapas = `${window.location.origin}${window.location.pathname.replace('index.html','')}concluir.html?s=${slug}`;
                 const resTiny = await fetch(`https://tinyurl.com/api-create.php?url=${encodeURIComponent(urlEtapas)}`);
                 const tinyLink = await resTiny.text();
 
-                // 2. Upload de Imagem
                 let imgUrl = document.getElementById('image_url').value;
                 const file = document.getElementById('file-upload').files[0];
                 if (file) {
@@ -146,13 +147,11 @@
                     if (!upErr) imgUrl = _supabase.storage.from('fotos').getPublicUrl(fileName).data.publicUrl;
                 }
 
-                // 3. Captura Ações
                 const acoes = Array.from(document.querySelectorAll('.action-item')).map(el => ({
                     type: el.querySelector('.type').value,
                     url: el.querySelector('.url').value
                 })).filter(a => a.url.length > 5);
 
-                // 4. Insert
                 const { error } = await _supabase.from('links').insert([{
                     user_id: user.id,
                     title: document.getElementById('title').value || 'Sem Título',
@@ -167,7 +166,7 @@
                 if (error) throw error;
                 location.reload();
             } catch (e) {
-                alert("Erro: " + e.message);
+                alert(e.message);
                 btn.innerText = "CRIAR LINK AGORA"; btn.disabled = false;
             }
         }
@@ -182,14 +181,14 @@
                     <div class="flex items-center gap-6">
                         <img src="${l.image_url || 'https://via.placeholder.com/60'}" class="w-16 h-16 rounded-[1.5rem] object-cover border border-zinc-800 shadow-lg">
                         <div>
-                            <h3 class="font-black text-white text-lg tracking-tight">${l.title}</h3>
+                            <h3 class="font-black text-white text-lg tracking-tight italic uppercase">${l.title}</h3>
                             <p class="text-[9px] text-zinc-600 font-mono mt-1 uppercase tracking-widest">/${l.slug}</p>
                         </div>
                     </div>
                     <div class="flex items-center gap-4">
                         <div class="text-right mr-4 border-r border-zinc-900 pr-6">
                             <p class="text-2xl font-black text-blue-500 leading-none">${l.views || 0}</p>
-                            <p class="text-[8px] text-zinc-700 font-black uppercase mt-1">Acessos</p>
+                            <p class="text-[8px] text-zinc-700 font-black uppercase mt-1">Cliques</p>
                         </div>
                         <button onclick="copy('${l.tiny_url}')" class="bg-blue-600 hover:bg-blue-500 px-8 py-4 rounded-[1.5rem] text-[10px] font-black">COPIAR</button>
                         <button onclick="deletar('${l.id}')" class="text-zinc-800 hover:text-red-500 p-3"><i class="fas fa-trash-alt"></i></button>
@@ -197,8 +196,8 @@
                 </div>`).join('');
         }
 
-        function copy(t) { navigator.clipboard.writeText(t); alert("Copiado!"); }
-        async function deletar(id) { if(confirm("Apagar?")) { await _supabase.from('links').delete().eq('id', id); location.reload(); } }
+        function copy(t) { navigator.clipboard.writeText(t); alert("Link Copiado!"); }
+        async function deletar(id) { if(confirm("Deseja apagar este link?")) { await _supabase.from('links').delete().eq('id', id); location.reload(); } }
     </script>
 </body>
 </html>
