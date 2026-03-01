@@ -29,8 +29,7 @@
         <h1 id="link-title" class="text-xl font-black uppercase tracking-tighter">CARREGANDO...</h1>
         <p id="status-text" class="text-[9px] text-zinc-500 font-black uppercase mt-2 tracking-[0.2em]">Verificando Link</p>
 
-        <div id="buttons-area" class="mt-8 space-y-3">
-            </div>
+        <div id="buttons-area" class="mt-8 space-y-3"></div>
 
         <button id="btn-final" onclick="finalizar()" disabled class="w-full mt-6 py-5 bg-[#1a1a1a] text-zinc-600 rounded-[1.5rem] font-black text-xs border border-zinc-800 cursor-not-allowed transition-all flex items-center justify-center gap-2">
             <i class="fas fa-lock"></i> <span id="timer-label">BLOQUEADO</span>
@@ -54,7 +53,6 @@
                 return;
             }
 
-            // Busca os dados no Supabase
             const { data, error } = await _supabase.from('links').select('*').eq('slug', slug).single();
 
             if (error || !data) {
@@ -66,23 +64,18 @@
             document.getElementById('link-title').innerText = data.title;
             document.getElementById('status-text').innerText = "ETAPA FINAL";
 
-            // 1. Carregar Imagem
             if (data.image_url) {
-                const container = document.getElementById('media-container');
-                container.innerHTML = `<img src="${data.image_url}" class="w-full h-full object-cover">`;
+                document.getElementById('media-container').innerHTML = `<img src="${data.image_url}" class="w-full h-full object-cover">`;
             }
 
-            // 2. Gerar Botões de Ação
             const areaBotoes = document.getElementById('buttons-area');
-            areaBotoes.innerHTML = ''; // Limpa o carregando
+            areaBotoes.innerHTML = '';
 
             if (data.actions && Array.isArray(data.actions)) {
                 data.actions.forEach((acao, index) => {
                     const btn = document.createElement('button');
                     btn.className = "w-full py-4 bg-white text-black rounded-[1.2rem] font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-3 animate-item";
-                    btn.style.animationDelay = `${index * 0.1}s`;
-                    btn.innerHTML = `<i class="fab fa-${acao.type}"></i> SEGUIR NO ${acao.type}`;
-
+                    btn.innerHTML = `<i class="fab fa-${acao.type}"></i> SEGUIR NO ${acao.type.toUpperCase()}`;
                     btn.onclick = () => {
                         window.open(acao.url, '_blank');
                         btn.classList.replace('bg-white', 'bg-zinc-900');
@@ -90,48 +83,37 @@
                         btn.innerHTML = `<i class="fas fa-check-circle"></i> CONCLUÍDO`;
                         btn.disabled = true;
                         concluidos++;
-                        
-                        if (concluidos >= data.actions.length) {
-                            iniciarTimer();
-                        }
+                        if (concluidos >= data.actions.length) iniciarTimer();
                     };
                     areaBotoes.appendChild(btn);
                 });
-            }
+            } else { iniciarTimer(); }
 
-            // Update Views (Silencioso)
-            _supabase.from('links').update({ views: (data.views || 0) + 1 }).eq('slug', slug).then();
+            // Incrementa views
+            await _supabase.from('links').update({ views: (data.views || 0) + 1 }).eq('slug', slug);
         }
 
         function iniciarTimer() {
             let tempo = 5;
             document.getElementById('status-text').innerText = "VALIDANDO ETAPAS...";
-            
             const intervalo = setInterval(() => {
                 tempo--;
                 document.getElementById('timer-label').innerText = `LIBERANDO EM ${tempo}S...`;
                 document.getElementById('progress-bar').style.width = `${((5-tempo)/5)*100}%`;
-
                 if (tempo <= 0) {
                     clearInterval(intervalo);
-                    const btnFinal = document.getElementById('btn-final');
-                    btnFinal.disabled = false;
-                    btnFinal.classList.replace('bg-[#1a1a1a]', 'bg-blue-600');
-                    btnFinal.classList.replace('text-zinc-600', 'text-white');
-                    btnFinal.classList.replace('cursor-not-allowed', 'cursor-pointer');
-                    btnFinal.innerHTML = `<i class="fas fa-cloud-download-alt"></i> ACESSAR CONTEÚDO`;
+                    const btn = document.getElementById('btn-final');
+                    btn.disabled = false;
+                    btn.classList.replace('bg-[#1a1a1a]', 'bg-blue-600');
+                    btn.classList.replace('text-zinc-600', 'text-white');
+                    btn.classList.replace('cursor-not-allowed', 'cursor-pointer');
+                    btn.innerHTML = `<i class="fas fa-cloud-download-alt"></i> ACESSAR CONTEÚDO`;
                     document.getElementById('status-text').innerText = "CONTEÚDO LIBERADO!";
                 }
             }, 1000);
         }
 
-        function finalizar() {
-            if (linkData) {
-                // Redireciona para o link de download real
-                window.location.href = linkData.final_url;
-            }
-        }
-
+        function finalizar() { if (linkData) window.location.href = linkData.final_url; }
         load();
     </script>
 </body>
