@@ -3,33 +3,22 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Velocity | Unlock Content</title>
+    <title>Velocity | Unlock</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <style>
-        .btn-done { background-color: #2563eb !important; color: white !important; border-color: #1d4ed8 !important; }
-    </style>
 </head>
-<body class="bg-[#050505] text-white flex items-center justify-center min-h-screen p-4 font-sans">
-
+<body class="bg-[#050505] text-white flex items-center justify-center min-h-screen p-4">
     <div class="w-full max-w-sm bg-[#111] border border-zinc-800 rounded-[2.5rem] p-10 text-center relative overflow-hidden shadow-2xl">
-        <div id="progress-bar" class="absolute top-0 left-0 h-1 bg-blue-600 transition-all duration-500" style="width: 0%"></div>
-        
+        <div id="progress-bar" class="absolute top-0 left-0 h-1 bg-blue-600 transition-all duration-1000" style="width: 0%"></div>
         <div id="media-container" class="mb-6 flex justify-center">
-            <div id="fallback" class="w-20 h-20 bg-blue-600 rounded-3xl flex items-center justify-center shadow-xl shadow-blue-900/30">
-                <span class="text-4xl font-black italic text-white">V</span>
-            </div>
+            <div class="w-20 h-20 bg-blue-600 rounded-3xl flex items-center justify-center shadow-xl shadow-blue-900/30"><span class="text-4xl font-black italic">V</span></div>
         </div>
-
         <h1 id="link-title" class="text-2xl font-bold uppercase tracking-tight">Carregando...</h1>
-        <p id="status-text" class="text-zinc-500 text-[10px] font-black uppercase tracking-[0.3em] mt-3">Aguarde</p>
-
-        <div id="buttons-area" class="mt-8 space-y-3">
-            </div>
-
-        <button id="btn-final" onclick="irParaDestino()" disabled class="w-full mt-6 py-5 bg-zinc-900 text-zinc-600 rounded-2xl font-bold border border-zinc-800 cursor-not-allowed flex items-center justify-center gap-2 transition-all duration-500">
-            <i class="fas fa-lock text-xs"></i> <span id="timer-label">BLOQUEADO</span>
+        <p id="status-text" class="text-zinc-500 text-[10px] font-black uppercase mt-3">Ação Requerida</p>
+        <div id="buttons-area" class="mt-8 space-y-3"></div>
+        <button id="btn-final" onclick="irParaDestino()" disabled class="w-full mt-6 py-5 bg-zinc-900 text-zinc-600 rounded-2xl font-bold border border-zinc-800 cursor-not-allowed flex items-center justify-center gap-2">
+            <i class="fas fa-lock"></i> <span id="timer-label">BLOQUEADO</span>
         </button>
     </div>
 
@@ -37,95 +26,60 @@
         const SUPABASE_URL = 'https://ikqetsyatpxkpwwuiovm.supabase.co';
         const SUPABASE_KEY = 'sb_publishable_n3MtfVbOkj3Ubb-yZ8YKFA_iaaeeVhR';
         const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-        
-        let linkData = null;
-        let acoesClicadas = 0;
+        let linkData = null; let cliques = 0;
 
-        async function loadLink() {
+        async function load() {
             const slug = new URLSearchParams(window.location.search).get('s');
-            if (!slug) return document.body.innerHTML = "Link inválido.";
+            const { data } = await _supabase.from('links').select('*').eq('slug', slug).single();
+            if (!data) return;
+            linkData = data;
+            document.getElementById('link-title').innerText = data.title;
+            document.getElementById('status-text').innerText = data.status_text;
 
-            const { data, error } = await _supabase.from('links').select('*').eq('slug', slug).single();
-            
-            if (data) {
-                linkData = data;
-                document.getElementById('link-title').innerText = data.title;
-                document.getElementById('status-text').innerText = data.status_text || 'Ação Requerida';
-                
-                // Contabiliza a View
-                await _supabase.from('links').update({ views: (data.views || 0) + 1 }).eq('slug', slug);
+            // Incrementa Views
+            await _supabase.from('links').update({ views: (data.views || 0) + 1 }).eq('slug', slug);
 
-                // 1. Lógica de Mídia (Foto ou YouTube)
-                if (data.image_url) {
-                    const area = document.getElementById('media-container');
-                    if (data.image_url.includes('youtube.com') || data.image_url.includes('youtu.be')) {
-                        let id = data.image_url.split('v=')[1] || data.image_url.split('/').pop();
-                        area.innerHTML = `<iframe class="rounded-2xl w-full aspect-video border border-zinc-800 shadow-lg" src="https://www.youtube.com/embed/${id}" frameborder="0"></iframe>`;
-                    } else {
-                        area.innerHTML = `<img src="${data.image_url}" class="rounded-3xl w-32 h-32 object-cover border-2 border-blue-600 shadow-xl shadow-blue-900/20">`;
-                    }
+            if (data.image_url) {
+                const area = document.getElementById('media-container');
+                if (data.image_url.includes('youtube')) {
+                    let id = data.image_url.split('v=')[1] || data.image_url.split('/').pop();
+                    area.innerHTML = `<iframe class="rounded-2xl w-full aspect-video border border-zinc-800" src="https://www.youtube.com/embed/${id}" frameborder="0"></iframe>`;
+                } else {
+                    area.innerHTML = `<img src="${data.image_url}" class="rounded-3xl w-32 h-32 object-cover border-2 border-blue-600 shadow-lg">`;
                 }
-
-                // 2. Gerar Botões de Ação Dinâmicos
-                const areaBotoes = document.getElementById('buttons-area');
-                const icons = { whatsapp: 'fa-whatsapp', youtube: 'fa-youtube', instagram: 'fa-instagram', tiktok: 'fa-tiktok' };
-                
-                data.actions.forEach((acao, index) => {
-                    const btn = document.createElement('button');
-                    btn.className = "w-full py-4 bg-white text-black rounded-2xl font-bold flex items-center justify-center gap-3 transition-all duration-300 hover:scale-[1.02] active:scale-95 shadow-sm";
-                    btn.innerHTML = `<i class="fab ${icons[acao.type] || 'fa-link'}"></i> Etapa ${index + 1}`;
-                    
-                    btn.onclick = () => {
-                        window.open(acao.url, '_blank');
-                        
-                        // EFEITO AZUL AO CLICAR
-                        btn.classList.add('btn-done');
-                        btn.innerHTML = `<i class="fas fa-check-circle"></i> Concluído`;
-                        btn.disabled = true; // Impede clicar de novo na mesma etapa
-                        
-                        acoesClicadas++;
-                        
-                        // Só inicia o timer se clicar em TODOS os botões
-                        if (acoesClicadas >= data.actions.length) {
-                            iniciarTimer();
-                        }
-                    };
-                    areaBotoes.appendChild(btn);
-                });
-            } else {
-                document.getElementById('link-title').innerText = "Link não encontrado";
             }
+
+            const icons = { whatsapp: 'fa-whatsapp', youtube: 'fa-youtube', instagram: 'fa-instagram' };
+            data.actions.forEach((acao, i) => {
+                const btn = document.createElement('button');
+                btn.className = "w-full py-4 bg-white text-black rounded-2xl font-bold flex items-center justify-center gap-3 transition-all duration-300";
+                btn.innerHTML = `<i class="fab ${icons[acao.type] || 'fa-link'}"></i> Etapa ${i+1}`;
+                btn.onclick = () => {
+                    window.open(acao.url, '_blank');
+                    // MUDANÇA DE COR PARA AZUL
+                    btn.style.backgroundColor = "#2563eb"; btn.style.color = "white";
+                    btn.innerHTML = `<i class="fas fa-check-circle"></i> Concluído`;
+                    btn.disabled = true; cliques++;
+                    if (cliques >= data.actions.length) iniciarTimer();
+                };
+                document.getElementById('buttons-area').appendChild(btn);
+            });
         }
 
         function iniciarTimer() {
-            let tempo = 8;
-            const label = document.getElementById('timer-label');
-            const progress = document.getElementById('progress-bar');
-            const btnFinal = document.getElementById('btn-final');
-
-            const intervalo = setInterval(() => {
-                tempo--;
-                label.innerText = `AGUARDE ${tempo}s...`;
-                progress.style.width = `${((8 - tempo) / 8) * 100}%`;
-
-                if (tempo <= 0) {
-                    clearInterval(intervalo);
-                    btnFinal.disabled = false;
-                    btnFinal.classList.remove('bg-zinc-900', 'text-zinc-600', 'cursor-not-allowed');
-                    btnFinal.classList.add('bg-blue-600', 'text-white', 'hover:bg-blue-500', 'shadow-lg', 'shadow-blue-900/40');
-                    btnFinal.innerHTML = `<i class="fas fa-arrow-down"></i> ACESSAR AGORA`;
-                    document.getElementById('status-text').innerText = "Conteúdo Liberado!";
+            let t = 8; const iv = setInterval(() => {
+                t--; document.getElementById('timer-label').innerText = `AGUARDE ${t}s...`;
+                document.getElementById('progress-bar').style.width = `${((8-t)/8)*100}%`;
+                if (t <= 0) {
+                    clearInterval(iv);
+                    const b = document.getElementById('btn-final');
+                    b.disabled = false; b.className = "w-full mt-6 py-5 bg-blue-600 text-white rounded-2xl font-bold cursor-pointer flex items-center justify-center gap-2";
+                    b.innerHTML = `<i class="fas fa-check-circle"></i> ACESSAR AGORA`;
                 }
             }, 1000);
         }
-
-        function irParaDestino() {
-            if (linkData && linkData.tiny_url) {
-                window.location.href = linkData.tiny_url;
-            }
-        }
-
-        loadLink();
+        function irParaDestino() { window.location.href = linkData.tiny_url; }
+        load();
     </script>
 </body>
 </html>
