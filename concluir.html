@@ -11,9 +11,8 @@
         body { background-color: #050505; color: white; }
         .glass-card { background: #111111; border: 1px solid #1f1f1f; border-radius: 3rem; }
         
-        /* Container de Mídia Dinâmico */
         #media-container { 
-            transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+            transition: all 0.5s ease;
             margin: 0 auto 1.5rem auto;
             display: flex;
             align-items: center;
@@ -23,12 +22,8 @@
             background: #1a1a1a;
         }
 
-        /* Estilo para Foto de Arquivo (Upload) */
         .mode-profile { width: 110px; height: 110px; border-radius: 2.2rem; }
-
-        /* Estilo para Links Externos (Pinterest/Mídia) - Tamanho Maior e Bonito */
         .mode-banner { width: 100%; max-width: 280px; height: 160px; border-radius: 1.5rem; }
-
         #media-container img { width: 100%; height: 100%; object-fit: cover; }
     </style>
 </head>
@@ -37,16 +32,17 @@
     <div class="w-full max-w-sm glass-card p-10 text-center shadow-2xl relative overflow-hidden">
         <div id="progress-bar" class="absolute top-0 left-0 h-1 bg-blue-600 transition-all duration-500" style="width: 0%"></div>
 
-        <div id="media-container" class="mode-profile shadow-2xl shadow-blue-900/10">
-            <i id="loading-icon" class="fas fa-bolt text-4xl text-blue-500 animate-pulse"></i>
+        <div id="media-container" class="mode-profile">
+            <i id="loading-bolt" class="fas fa-bolt text-4xl text-blue-500 animate-pulse"></i>
         </div>
 
         <h1 id="link-title" class="text-xl font-black uppercase italic">CARREGANDO...</h1>
-        <p id="status-text" class="text-[9px] text-zinc-500 font-black uppercase mt-2 tracking-widest">Sincronizando...</p>
+        <p id="status-text" class="text-[9px] text-zinc-500 font-black uppercase mt-2 tracking-widest">Sincronizando tarefas...</p>
 
-        <div id="buttons-area" class="mt-8 space-y-3"></div>
+        <div id="buttons-area" class="mt-8 space-y-3">
+            </div>
 
-        <button id="btn-final" onclick="finalizar()" disabled class="w-full mt-6 py-5 bg-[#1a1a1a] text-zinc-600 rounded-[1.5rem] font-black text-xs border border-zinc-800 cursor-not-allowed transition-all flex items-center justify-center gap-2">
+        <button id="btn-final" onclick="finalizar()" disabled class="w-full mt-6 py-5 bg-[#1a1a1a] text-zinc-600 rounded-[1.5rem] font-black text-xs border border-zinc-800 cursor-not-allowed flex items-center justify-center gap-2">
             <i class="fas fa-lock"></i> <span id="timer-label">BLOQUEADO</span>
         </button>
     </div>
@@ -58,55 +54,66 @@
         let linkData = null, concluidos = 0;
 
         async function load() {
-            const slug = new URLSearchParams(window.location.search).get('s');
-            if (!slug) return;
+            const params = new URLSearchParams(window.location.search);
+            const slug = params.get('s');
+            if (!slug) {
+                document.getElementById('link-title').innerText = "LINK INVÁLIDO";
+                return;
+            }
             
             const { data, error } = await _supabase.from('links').select('*').eq('slug', slug).single();
+            
             if (error || !data) {
-                document.getElementById('link-title').innerText = "ERRO AO CARREGAR";
+                document.getElementById('link-title').innerText = "NÃO ENCONTRADO";
                 return;
             }
             
             linkData = data;
             document.getElementById('link-title').innerText = data.title;
-            document.getElementById('status-text').innerText = "TAREFAS PENDENTES";
+            document.getElementById('status-text').innerText = "COMPLETE AS ETAPAS";
 
-            // Lógica da Imagem: Decide o tamanho baseado na origem
+            // Ajuste da Imagem
             const container = document.getElementById('media-container');
-            if (data.image_url && data.image_url.trim() !== "") {
+            if (data.image_url) {
                 const isUpload = data.image_url.includes('supabase.co');
-                
-                if (isUpload) {
-                    container.className = "mode-profile shadow-2xl shadow-blue-900/10";
-                } else {
-                    container.className = "mode-banner shadow-2xl shadow-blue-900/10";
-                }
+                container.className = isUpload ? "mode-profile shadow-2xl" : "mode-banner shadow-2xl";
                 container.innerHTML = `<img src="${data.image_url}" onerror="this.src='https://www.pinterest.com/favicon.ico'">`;
             }
 
-            // Gerar Botões
+            // CARREGAMENTO DOS BOTÕES (COM TRAVA DE SEGURANÇA)
             const area = document.getElementById('buttons-area');
-            const icons = { youtube:'fa-youtube', instagram:'fa-instagram', tiktok:'fa-tiktok', pinterest:'fa-pinterest', whatsapp:'fa-whatsapp', discord:'fa-discord', twitch:'fa-twitch', 'x-twitter':'fa-x-twitter' };
+            area.innerHTML = ''; // Limpa antes de gerar
 
-            if (data.actions && data.actions.length > 0) {
-                data.actions.forEach(acao => {
+            let acoes = data.actions;
+            // Se as ações vierem como texto, transforma em objeto
+            if (typeof acoes === 'string') acoes = JSON.parse(acoes);
+
+            if (acoes && acoes.length > 0) {
+                acoes.forEach(acao => {
                     const btn = document.createElement('button');
-                    btn.className = "w-full py-4 bg-white text-black rounded-[1.2rem] font-black text-[10px] uppercase flex items-center justify-center gap-3";
-                    btn.innerHTML = `<i class="fab ${icons[acao.type] || 'fa-link'}"></i> SEGUIR NO ${acao.type.replace('-',' ').toUpperCase()}`;
+                    btn.className = "w-full py-4 bg-white text-black rounded-[1.2rem] font-black text-[10px] uppercase flex items-center justify-center gap-3 active:scale-95 transition-all";
+                    
+                    const icons = { youtube:'fa-youtube', instagram:'fa-instagram', tiktok:'fa-tiktok', pinterest:'fa-pinterest', whatsapp:'fa-whatsapp', discord:'fa-discord', twitch:'fa-twitch', 'x-twitter':'fa-x-twitter' };
+                    const iconName = icons[acao.type] || 'fa-link';
+
+                    btn.innerHTML = `<i class="fab ${iconName}"></i> SEGUIR NO ${acao.type.toUpperCase()}`;
                     
                     btn.onclick = () => {
                         window.open(acao.url, '_blank');
                         btn.className = "w-full py-4 bg-zinc-900 text-blue-500 rounded-[1.2rem] font-black text-[10px] uppercase flex items-center justify-center gap-3 border border-blue-500/20";
                         btn.innerHTML = `<i class="fas fa-check-circle"></i> CONCLUÍDO`;
                         btn.disabled = true;
-                        concluidos++;
                         
-                        document.getElementById('progress-bar').style.width = (concluidos / data.actions.length) * 50 + "%";
-                        if (concluidos >= data.actions.length) iniciarTimer();
+                        concluidos++;
+                        const total = acoes.length;
+                        document.getElementById('progress-bar').style.width = (concluidos / total) * 50 + "%";
+                        
+                        if (concluidos >= total) iniciarTimer();
                     };
                     area.appendChild(btn);
                 });
             } else {
+                // Se não tiver ações, libera direto
                 iniciarTimer();
             }
 
@@ -125,9 +132,9 @@
                     clearInterval(iv);
                     const b = document.getElementById('btn-final');
                     b.disabled = false;
-                    b.className = "w-full mt-6 py-5 bg-blue-600 text-white rounded-[1.5rem] font-black text-xs flex items-center justify-center gap-2 shadow-lg shadow-blue-600/20";
+                    b.className = "w-full mt-6 py-5 bg-blue-600 text-white rounded-[1.5rem] font-black text-xs flex items-center justify-center gap-2 shadow-lg shadow-blue-600/20 cursor-pointer";
                     b.innerHTML = `<i class="fas fa-cloud-download-alt"></i> ACESSAR CONTEÚDO`;
-                    document.getElementById('status-text').innerText = "LIBERADO!";
+                    document.getElementById('status-text').innerText = "PRONTO!";
                 }
             }, 1000);
         }
@@ -139,7 +146,9 @@
                 window.location.href = url;
             }
         }
-        load();
+
+        // Tenta carregar. Se falhar, avisa no console.
+        load().catch(err => console.error("Erro no Load:", err));
     </script>
 </body>
 </html>
