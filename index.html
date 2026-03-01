@@ -61,36 +61,37 @@
             const div = document.createElement('div');
             div.className = "flex gap-2 action-item mt-2";
             div.innerHTML = `<select class="type bg-zinc-900 border border-zinc-800 p-3 rounded-xl text-xs outline-none"><option value="whatsapp">WhatsApp</option><option value="youtube">YouTube</option><option value="instagram">Instagram</option><option value="tiktok">TikTok</option></select>
-                             <input type="text" placeholder="URL da Rede Social" class="url flex-1 bg-zinc-900 border border-zinc-800 p-3 rounded-xl text-xs outline-none">`;
+                             <input type="text" placeholder="URL da Rede Social" class="url flex-1 bg-zinc-900 border border-zinc-800 p-3 rounded-xl text-xs outline-none">
+                             <button onclick="this.parentElement.remove()" class="text-red-500 px-2"><i class="fas fa-trash"></i></button>`;
             document.getElementById('actions-list').appendChild(div);
         }
 
         async function gerarLink() {
             const btn = document.getElementById('btn-save');
+            const originalText = btn.innerText;
             btn.innerText = "PROCESSANDO..."; btn.disabled = true;
+            
             let imgUrl = document.getElementById('image_url').value;
-            const slug = document.getElementById('slug').value;
+            const slug = document.getElementById('slug').value.trim();
+
+            if(!slug) { alert("O Slug é obrigatório!"); btn.disabled = false; btn.innerText = originalText; return; }
 
             try {
+                // Upload de arquivo
                 const file = document.getElementById('file-upload').files[0];
                 if (file) {
                     const fileName = `${Date.now()}-${file.name}`;
                     const { data: upData, error: upErr } = await _supabase.storage.from('fotos').upload(fileName, file);
-                    if (!upErr) imgUrl = _supabase.storage.from('fotos').getPublicUrl(fileName).data.publicUrl;
+                    if (upErr) throw upErr;
+                    imgUrl = _supabase.storage.from('fotos').getPublicUrl(fileName).data.publicUrl;
                 }
 
                 const acoes = Array.from(document.querySelectorAll('.action-item')).map(el => ({
-                    type: el.querySelector('.type').value, url: el.querySelector('.url').value
+                    type: el.querySelector('.type').value, 
+                    url: el.querySelector('.url').value
                 }));
 
-                // GERAR LINK CURTO VIA TINYURL (Apontando para o concluir.html)
-                const meuSite = `${window.location.origin}${window.location.pathname.replace('index.html','')}concluir.html?s=${slug}`;
-                let shortLink = meuSite;
-                
-                try {
-                    const res = await fetch(`https://tinyurl.com/api-create.php?url=${encodeURIComponent(meuSite)}`);
-                    if (res.ok) shortLink = await res.text();
-                } catch(e) { console.warn("Erro no encurtador, usando link longo."); }
+                const { data: { user } } = await _supabase.auth.getUser();
 
                 const { error } = await _supabase.from('links').insert([{
                     title: document.getElementById('title').value,
@@ -99,16 +100,27 @@
                     tiny_url: document.getElementById('final_url').value, 
                     image_url: imgUrl,
                     status_text: document.getElementById('status_text').value || 'Ação Requerida',
-                    user_id: (await _supabase.auth.getUser()).data.user.id,
-                    short_url: shortLink // Vamos salvar o link encurtado aqui
+                    user_id: user.id
                 }]);
 
-                if (error) throw error;
+                if (error) {
+                    if(error.code === "23505") alert("Este Slug já está em uso! Escolha outro.");
+                    else alert("Erro Supabase: " + error.message);
+                    throw error;
+                }
+                
                 location.reload();
             } catch (e) {
-                alert("Erro ao criar! Verifique o Slug.");
-                btn.innerText = "CRIAR LINK"; btn.disabled = false;
+                console.error(e);
+                btn.innerText = originalText; btn.disabled = false;
             }
+        }
+
+        async function deletarLink(id) {
+            if(!confirm("Tem certeza que deseja apagar este link?")) return;
+            const { error } = await _supabase.from('links').delete().eq('id', id);
+            if(error) alert("Erro ao deletar: " + error.message);
+            else listar();
         }
 
         async function listar() {
@@ -120,11 +132,14 @@
             }
             container.innerHTML = data.map(l => `
                 <div class="bg-[#111] p-6 rounded-2xl border border-zinc-800 flex justify-between items-center shadow-lg">
-                    <div><h3 class="font-bold text-white">${l.title}</h3><p class="text-[10px] text-zinc-500 italic">slug: ${l.slug}</p></div>
+                    <div>
+                        <h3 class="font-bold text-white">${l.title}</h3>
+                        <p class="text-[10px] text-zinc-500 italic">slug: ${l.slug}</p>
+                    </div>
                     <div class="flex items-center gap-3">
                         <span class="text-xs text-blue-500 font-black bg-blue-500/10 px-3 py-1 rounded-full"><i class="fas fa-eye mr-1"></i>${l.views || 0}</span>
-                        <button onclick="window.open('concluir.html?s=${l.slug}')" class="bg-zinc-800 px-4 py-2 rounded-lg text-[10px] font-bold">VER SITE</button>
-                        <button onclick="navigator.clipboard.writeText('${l.short_url || (window.location.origin + window.location.pathname.replace('index.html','') + 'concluir.html?s=' + l.slug)}'); alert('Link Curto Copiado!')" class="bg-blue-600 px-4 py-2 rounded-lg text-[10px] font-bold">COPIAR</button>
+                        <button onclick="navigator.clipboard.writeText('${window.location.origin}${window.location.pathname.replace('index.html','')}concluir.html?s=${l.slug}'); alert('Copiado!')" class="bg-blue-600 px-4 py-2 rounded-lg text-[10px] font-bold">COPIAR</button>
+                        <button onclick="deletarLink('${l.id}')" class="bg-red-900/30 text-red-500 p-2 rounded-lg hover:bg-red-500 hover:text-white transition-all"><i class="fas fa-trash"></i></button>
                     </div>
                 </div>
             `).join('');
