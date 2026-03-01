@@ -8,10 +8,9 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
-        body { background-color: #050505; color: white; }
+        body { background-color: #050505; color: white; overflow-x: hidden; }
         .glass-card { background: #111111; border: 1px solid #1f1f1f; border-radius: 3rem; }
-        /* Slot da imagem corrigido para sempre preencher */
-        .img-slot { width: 100px; height: 100px; background: #1a1a1a; border-radius: 2rem; display: flex; align-items: center; justify-content: center; overflow: hidden; border: 1px solid #333; }
+        .img-slot { width: 110px; height: 110px; background: #1a1a1a; border-radius: 2.2rem; display: flex; align-items: center; justify-content: center; overflow: hidden; border: 2px solid #222; }
         .img-slot img { width: 100%; height: 100%; object-fit: cover; }
         @keyframes slideIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
         .animate-item { animation: slideIn 0.4s ease forwards; }
@@ -23,13 +22,13 @@
         <div id="progress-bar" class="absolute top-0 left-0 h-1 bg-blue-600 transition-all duration-500" style="width: 0%"></div>
 
         <div class="flex justify-center mb-6">
-            <div id="media-container" class="img-slot shadow-xl shadow-blue-900/10">
-                <i class="fas fa-bolt text-4xl text-blue-500"></i>
+            <div id="media-container" class="img-slot shadow-2xl shadow-blue-900/10">
+                <i class="fas fa-bolt text-4xl text-blue-500 animate-pulse"></i>
             </div>
         </div>
 
         <h1 id="link-title" class="text-xl font-black uppercase tracking-tighter italic">CARREGANDO...</h1>
-        <p id="status-text" class="text-[9px] text-zinc-500 font-black uppercase mt-2 tracking-[0.2em]">Sincronizando...</p>
+        <p id="status-text" class="text-[9px] text-zinc-500 font-black uppercase mt-2 tracking-[0.2em]">Sincronizando Mídia</p>
 
         <div id="buttons-area" class="mt-8 space-y-3"></div>
 
@@ -56,12 +55,10 @@
             linkData = data;
             document.getElementById('link-title').innerText = data.title;
             
-            // LÓGICA DE MÍDIA CORRIGIDA
+            // LÓGICA DE MÍDIA: Substitui o raio pela sua foto/Pin
             const mediaContainer = document.getElementById('media-container');
             if (data.image_url && data.image_url.trim() !== "") {
-                // Se for link do Pinterest, ele tenta exibir a imagem do Pin
-                // Se for upload do Storage, ele exibe a foto direto
-                mediaContainer.innerHTML = `<img src="${data.image_url}" alt="Media" onerror="this.parentElement.innerHTML='<i class=\"fab fa-pinterest text-4xl text-red-600\"></i>'">`;
+                mediaContainer.innerHTML = `<img src="${data.image_url}" onerror="this.parentElement.innerHTML='<i class=\"fab fa-pinterest text-4xl text-red-600\"></i>'">`;
             }
 
             const area = document.getElementById('buttons-area');
@@ -92,6 +89,7 @@
                         btn.disabled = true;
                         concluidos++;
                         
+                        // Barra de progresso baseada nos cliques
                         const progBotao = (concluidos / data.actions.length) * 50;
                         document.getElementById('progress-bar').style.width = progBotao + "%";
 
@@ -101,15 +99,18 @@
                 });
             } else { iniciarTimer(); }
 
+            // Incrementa views no banco
             _supabase.from('links').update({ views: (data.views || 0) + 1 }).eq('slug', slug).then();
         }
 
         function iniciarTimer() {
             let tempo = 5;
-            document.getElementById('status-text').innerText = "CONFERINDO ETAPAS...";
+            document.getElementById('status-text').innerText = "VERIFICANDO ETAPAS...";
             const intervalo = setInterval(() => {
                 tempo--;
                 document.getElementById('timer-label').innerText = `LIBERANDO EM ${tempo}S...`;
+                
+                // Barra de progresso finalizando de 50% a 100%
                 const progFinal = 50 + (((5 - tempo) / 5) * 50);
                 document.getElementById('progress-bar').style.width = progFinal + "%";
 
@@ -121,7 +122,7 @@
                     b.classList.replace('text-zinc-600', 'text-white');
                     b.classList.replace('cursor-not-allowed', 'cursor-pointer');
                     b.innerHTML = `<i class="fas fa-cloud-download-alt"></i> ACESSAR CONTEÚDO`;
-                    document.getElementById('status-text').innerText = "TUDO PRONTO!";
+                    document.getElementById('status-text').innerText = "LINK LIBERADO!";
                 }
             }, 1000);
         }
