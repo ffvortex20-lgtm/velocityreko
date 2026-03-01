@@ -14,12 +14,17 @@
             <button onclick="_supabase.auth.signOut(); location.reload();" class="text-xs font-bold text-zinc-500 hover:text-red-500">SAIR</button>
         </div>
 
-        <div class="bg-[#111] border border-zinc-800 p-8 rounded-[2rem] shadow-2xl space-y-4">
+        <div class="bg-[#111] border border-zinc-800 p-8 rounded-[2.5rem] shadow-2xl space-y-4">
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <input id="title" type="text" placeholder="Título do Link" class="p-4 bg-black border border-zinc-800 rounded-2xl outline-none focus:border-blue-600">
                 <input id="slug" type="text" placeholder="Slug (ex: pack-gratis)" class="p-4 bg-black border border-zinc-800 rounded-2xl outline-none focus:border-blue-600">
                 <input id="status_text" type="text" placeholder="Texto de Status (ex: ETAPA FINAL)" class="p-4 bg-black border border-zinc-800 rounded-2xl outline-none focus:border-blue-600">
-                <input id="image_url" type="text" placeholder="Link da Foto (Pinterest) ou Vídeo (YT)" class="p-4 bg-black border border-zinc-800 rounded-2xl outline-none focus:border-blue-600">
+                
+                <div class="flex flex-col gap-2">
+                    <label class="text-[10px] text-blue-500 font-bold px-2">FOTO (ARQUIVO OU LINK)</label>
+                    <input id="file-upload" type="file" accept="image/*" class="text-xs text-zinc-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:bg-zinc-800 file:text-white hover:file:bg-zinc-700 cursor-pointer">
+                    <input id="image_url" type="text" placeholder="Ou cole o link da foto/YT" class="p-4 bg-black border border-zinc-800 rounded-2xl outline-none focus:border-blue-600 text-xs">
+                </div>
             </div>
 
             <div class="bg-black/40 p-6 rounded-2xl border border-zinc-800/50">
@@ -58,42 +63,63 @@
         }
 
         async function gerarLink() {
-            const user = (await _supabase.auth.getUser()).data.user;
             const btn = document.getElementById('btn-save');
-            btn.innerText = "GERANDO..."; btn.disabled = true;
-
-            const acoes = Array.from(document.querySelectorAll('.action-item')).map(el => ({
-                type: el.querySelector('.type').value,
-                url: el.querySelector('.url').value
-            }));
+            const fileInput = document.getElementById('file-upload');
+            const finalUrlRaw = document.getElementById('final_url').value;
+            
+            if(!finalUrlRaw) return alert("Insira a URL final!");
+            
+            btn.innerText = "PROCESSANDO..."; btn.disabled = true;
+            let imgUrl = document.getElementById('image_url').value;
 
             try {
-                const res = await fetch(`https://api.tinyurl.com/dev/api-create.php?url=${encodeURIComponent(document.getElementById('final_url').value)}`);
-                const tiny = await res.text();
+                // 1. Upload de Arquivo (Opcional)
+                if (fileInput.files.length > 0) {
+                    const file = fileInput.files[0];
+                    const fileName = `${Date.now()}-${file.name}`;
+                    const { data: upData, error: upErr } = await _supabase.storage.from('fotos').upload(fileName, file);
+                    if (upErr) throw upErr;
+                    imgUrl = _supabase.storage.from('fotos').getPublicUrl(fileName).data.publicUrl;
+                }
+
+                // 2. TinyURL (Link Curto) - Usando fallback caso falhe
+                let tiny = finalUrlRaw;
+                try {
+                    const res = await fetch(`https://tinyurl.com/api-create.php?url=${encodeURIComponent(finalUrlRaw)}`);
+                    if (res.ok) tiny = await res.text();
+                } catch (e) { console.warn("TinyURL falhou, usando link direto."); }
+
+                // 3. Salvar no Banco
+                const acoes = Array.from(document.querySelectorAll('.action-item')).map(el => ({
+                    type: el.querySelector('.type').value,
+                    url: el.querySelector('.url').value
+                }));
 
                 const { error } = await _supabase.from('links').insert([{
                     title: document.getElementById('title').value,
                     slug: document.getElementById('slug').value,
                     actions: acoes,
                     tiny_url: tiny,
-                    image_url: document.getElementById('image_url').value,
+                    image_url: imgUrl,
                     status_text: document.getElementById('status_text').value || 'Ação Requerida',
-                    user_id: user.id
+                    user_id: (await _supabase.auth.getUser()).data.user.id
                 }]);
+
                 if (error) throw error;
                 location.reload();
-            } catch (e) { alert("Erro ao criar link. Verifique o console."); console.error(e); btn.innerText = "CRIAR LINK"; btn.disabled = false; }
+            } catch (e) { 
+                alert("Erro ao criar link. Verifique se o Bucket 'fotos' existe no Supabase."); 
+                console.error(e); 
+                btn.innerText = "CRIAR LINK"; btn.disabled = false; 
+            }
         }
 
         async function listar() {
             const { data } = await _supabase.from('links').select('*').order('created_at', {ascending: false});
             document.getElementById('lista-links').innerHTML = data.map(l => `
-                <div class="bg-[#111] p-6 rounded-2xl border border-zinc-800 flex justify-between items-center shadow-lg">
-                    <div><h3 class="font-bold">${l.title}</h3><p class="text-[10px] text-zinc-500 italic">slug: ${l.slug}</p></div>
-                    <div class="flex items-center gap-4">
-                        <span class="text-xs text-zinc-400 font-mono"><i class="fas fa-eye mr-1"></i>${l.views}</span>
-                        <button onclick="navigator.clipboard.writeText('${window.location.origin}${window.location.pathname}concluir.html?s=${l.slug}'); alert('Copiado!')" class="bg-zinc-800 px-4 py-2 rounded-lg text-[10px] font-bold">COPIAR</button>
-                    </div>
+                <div class="bg-[#111] p-6 rounded-2xl border border-zinc-800 flex justify-between items-center">
+                    <div><h3 class="font-bold">${l.title}</h3><p class="text-[10px] text-zinc-500">slug: ${l.slug}</p></div>
+                    <button onclick="navigator.clipboard.writeText('${window.location.origin}${window.location.pathname}concluir.html?s=${l.slug}'); alert('Copiado!')" class="bg-zinc-800 px-4 py-2 rounded-lg text-[10px] font-bold">COPIAR</button>
                 </div>
             `).join('');
         }
