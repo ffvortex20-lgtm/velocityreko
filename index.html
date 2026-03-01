@@ -35,51 +35,50 @@
             <div class="flex justify-between items-center glass p-8 rounded-[3rem] border border-zinc-800/50 animate-up">
                 <div>
                     <h1 class="text-2xl font-black italic gradient-text tracking-tighter">VELOCITY PRO</h1>
-                    <p id="user-email" class="text-[9px] text-zinc-600 font-black uppercase mt-1"></p>
+                    <p id="user-email" class="text-[9px] text-zinc-600 font-black uppercase tracking-widest mt-1"></p>
                 </div>
-                <button onclick="handleAuth()" class="text-[10px] font-black text-zinc-500 hover:text-red-500 border border-zinc-800 px-6 py-2 rounded-2xl transition-all">SAIR</button>
+                <button onclick="handleAuth()" class="text-[10px] font-black text-zinc-500 hover:text-red-500 border border-zinc-800 px-6 py-2 rounded-2xl transition-all uppercase">Sair</button>
             </div>
 
             <div class="bg-[#080808] border border-zinc-800/60 p-8 md:p-12 rounded-[4rem] shadow-3xl space-y-8 animate-up">
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
                     <div class="space-y-4">
-                        <label class="text-[10px] font-black text-blue-500 ml-4 uppercase">Configuração</label>
+                        <label class="text-[10px] font-black text-blue-500 ml-4 uppercase tracking-widest">Identificação</label>
                         <input id="title" type="text" placeholder="Título do Link" class="w-full p-5 bg-black border border-zinc-800 rounded-[2rem] outline-none focus:border-blue-500">
                         <input id="slug" type="text" placeholder="Slug (ex: pack-vip)" class="w-full p-5 bg-black border border-zinc-800 rounded-[2rem] outline-none focus:border-blue-500">
                     </div>
                     <div class="space-y-4">
-                        <label class="text-[10px] font-black text-blue-500 ml-4 uppercase">Mídia</label>
-                        <input id="file-upload" type="file" accept="image/*" class="w-full text-xs text-zinc-500 bg-black p-4 rounded-[2rem] border border-zinc-800 cursor-pointer">
-                        <input id="image_url" type="text" placeholder="Ou URL da imagem/YouTube" class="w-full p-5 bg-black border border-zinc-800 rounded-[2rem] outline-none text-xs text-blue-400">
+                        <label class="text-[10px] font-black text-blue-500 ml-4 uppercase tracking-widest">Mídia</label>
+                        <input id="image_url" type="text" placeholder="URL da Imagem ou YouTube" class="w-full p-5 bg-black border border-zinc-800 rounded-[2rem] outline-none text-blue-400">
                     </div>
                 </div>
 
                 <div class="bg-zinc-900/20 p-8 rounded-[3rem] border border-zinc-800/40">
-                    <p class="text-[10px] font-black text-zinc-600 mb-6 px-4 uppercase">Tarefas</p>
+                    <p class="text-[10px] font-black text-zinc-600 mb-6 px-4 uppercase tracking-widest">Ações de Desbloqueio</p>
                     <div id="actions-list" class="space-y-4">
                         <div class="flex gap-3 action-item">
-                            <select class="type bg-black border border-zinc-800 p-5 rounded-[1.5rem] text-xs font-bold outline-none">
+                            <select class="type bg-black border border-zinc-800 p-5 rounded-[1.5rem] text-xs font-bold outline-none px-6">
                                 <option value="youtube">YouTube</option>
                                 <option value="instagram">Instagram</option>
-                                <option value="whatsapp">WhatsApp</option>
+                                <option value="tiktok">TikTok</option>
                             </select>
                             <input type="text" placeholder="URL da Rede Social" class="url flex-1 bg-black border border-zinc-800 p-5 rounded-[1.5rem] text-xs outline-none">
                         </div>
                     </div>
-                    <button onclick="addAcao()" class="mt-4 text-blue-500 text-[10px] font-black hover:text-white transition-all ml-4">+ ADICIONAR TAREFA</button>
+                    <button onclick="addAcao()" class="mt-6 text-blue-500 text-[10px] font-black hover:text-white transition-all ml-4 uppercase">+ Adicionar Ação</button>
                 </div>
 
                 <div class="space-y-4">
-                    <label class="text-[10px] font-black text-green-500 ml-4 uppercase">URL Final (Download)</label>
-                    <input id="final_url" type="text" placeholder="https://seu-arquivo.com" class="w-full p-6 bg-black border border-zinc-800 rounded-[2.5rem] outline-none font-bold text-blue-400">
+                    <label class="text-[10px] font-black text-green-500 ml-4 uppercase tracking-widest">Destino Final</label>
+                    <input id="final_url" type="text" placeholder="https://seu-link-final.com" class="w-full p-6 bg-black border border-zinc-800 rounded-[2.5rem] outline-none font-bold text-blue-400">
                 </div>
 
-                <button id="btn-save" onclick="gerarLink()" class="w-full bg-blue-600 py-7 rounded-[2.5rem] font-black text-xl hover:bg-blue-500 transition-all shadow-2xl active:scale-[0.98]">
+                <button id="btn-save" onclick="gerarLink()" class="w-full bg-blue-600 py-7 rounded-[2.5rem] font-black text-xl hover:bg-blue-500 transition-all shadow-2xl">
                     CRIAR LINK MONETIZADO
                 </button>
             </div>
 
-            <div id="lista-links" class="grid gap-5 pb-20"></div>
+            <div id="lista-links" class="grid gap-5 pb-20 animate-up"></div>
         </div>
     </div>
 
@@ -112,10 +111,10 @@
             div.className = "flex gap-3 action-item mt-2 animate-up";
             div.innerHTML = `
                 <select class="type bg-black border border-zinc-800 p-5 rounded-[1.5rem] text-xs font-bold outline-none px-6">
-                    <option value="youtube">YouTube</option><option value="instagram">Instagram</option><option value="whatsapp">WhatsApp</option>
+                    <option value="youtube">YouTube</option><option value="instagram">Instagram</option><option value="tiktok">TikTok</option>
                 </select>
                 <input type="text" placeholder="URL da Rede Social" class="url flex-1 bg-black border border-zinc-800 p-5 rounded-[1.5rem] text-xs outline-none">
-                <button onclick="this.parentElement.remove()" class="text-red-500 px-4"><i class="fas fa-trash-alt"></i></button>`;
+                <button onclick="this.parentElement.remove()" class="text-red-500 px-4 hover:bg-red-500/10 rounded-[1.5rem] transition-all"><i class="fas fa-trash-alt"></i></button>`;
             document.getElementById('actions-list').appendChild(div);
         }
 
@@ -126,33 +125,20 @@
 
             const slug = document.getElementById('slug').value.trim().toLowerCase().replace(/\s+/g, '-');
             const final = document.getElementById('final_url').value.trim();
+            if(!slug || !final) return alert("Slug e Link Final são obrigatórios!");
 
-            if(!slug || !final) return alert("Preencha o Slug e a URL Final!");
-
-            btn.innerText = "GERANDO LINK CURTO..."; btn.disabled = true;
+            btn.innerText = "ENCURTANDO..."; btn.disabled = true;
 
             try {
-                // 1. Gera Link do Concluir.html e Encurta via TinyURL
                 const urlEtapas = `${window.location.origin}${window.location.pathname.replace('index.html','')}concluir.html?s=${slug}`;
                 const resTiny = await fetch(`https://tinyurl.com/api-create.php?url=${encodeURIComponent(urlEtapas)}`);
                 const tinyLink = await resTiny.text();
 
-                // 2. Upload de Foto
-                let imgUrl = document.getElementById('image_url').value;
-                const file = document.getElementById('file-upload').files[0];
-                if (file) {
-                    const fileName = `public/${Date.now()}-${file.name}`;
-                    const { error: upErr } = await _supabase.storage.from('fotos').upload(fileName, file);
-                    if (!upErr) imgUrl = _supabase.storage.from('fotos').getPublicUrl(fileName).data.publicUrl;
-                }
-
-                // 3. Captura Ações
                 const acoes = Array.from(document.querySelectorAll('.action-item')).map(el => ({
                     type: el.querySelector('.type').value,
                     url: el.querySelector('.url').value
                 })).filter(a => a.url.length > 5);
 
-                // 4. Salva no Banco (user_id evita erro de RLS)
                 const { error } = await _supabase.from('links').insert([{
                     user_id: user.id,
                     title: document.getElementById('title').value || 'Link Sem Título',
@@ -160,7 +146,7 @@
                     actions: acoes,
                     final_url: final,
                     tiny_url: tinyLink,
-                    image_url: imgUrl,
+                    image_url: document.getElementById('image_url').value,
                     status_text: 'ETAPA FINAL'
                 }]);
 
@@ -168,14 +154,14 @@
                 location.reload();
             } catch (e) {
                 alert("Erro: " + e.message);
-                btn.innerText = "CRIAR LINK AGORA"; btn.disabled = false;
+                btn.innerText = "CRIAR LINK MONETIZADO"; btn.disabled = false;
             }
         }
 
         async function listar(userId) {
             const { data } = await _supabase.from('links').select('*').eq('user_id', userId).order('created_at', {ascending: false});
             const container = document.getElementById('lista-links');
-            if (!data) return;
+            if (!data || data.length === 0) return container.innerHTML = "<p class='text-center text-zinc-700 uppercase font-black py-10'>Nenhum link criado</p>";
 
             container.innerHTML = data.map(l => `
                 <div class="bg-[#0c0c0c] p-6 rounded-[2.5rem] border border-zinc-800/40 flex justify-between items-center group">
@@ -183,13 +169,13 @@
                         <img src="${l.image_url || 'https://via.placeholder.com/60'}" class="w-16 h-16 rounded-[1.5rem] object-cover border border-zinc-800 shadow-lg">
                         <div>
                             <h3 class="font-black text-white text-lg tracking-tight">${l.title}</h3>
-                            <p class="text-[9px] text-zinc-600 font-mono mt-1">/${l.slug}</p>
+                            <p class="text-[9px] text-zinc-600 font-mono tracking-widest uppercase">/${l.slug}</p>
                         </div>
                     </div>
                     <div class="flex items-center gap-4">
-                        <div class="hidden md:block text-right mr-4 border-r border-zinc-900 pr-6">
-                            <p class="text-2xl font-black text-blue-500 leading-none">${l.views || 0}</p>
-                            <p class="text-[8px] text-zinc-700 font-black uppercase mt-1">Acessos</p>
+                        <div class="text-right mr-4">
+                            <p class="text-2xl font-black text-blue-500">${l.views || 0}</p>
+                            <p class="text-[8px] text-zinc-700 font-black uppercase">Acessos</p>
                         </div>
                         <button onclick="copy('${l.tiny_url}')" class="bg-blue-600 hover:bg-blue-500 px-8 py-4 rounded-[1.5rem] text-[10px] font-black transition-all">COPIAR</button>
                         <button onclick="deletar('${l.id}')" class="text-zinc-800 hover:text-red-500 p-3"><i class="fas fa-trash-alt"></i></button>
@@ -197,8 +183,8 @@
                 </div>`).join('');
         }
 
-        function copy(t) { navigator.clipboard.writeText(t); alert("Copiado!"); }
-        async function deletar(id) { if(confirm("Apagar?")) { await _supabase.from('links').delete().eq('id', id); location.reload(); } }
+        function copy(t) { navigator.clipboard.writeText(t); alert("Link Copiado!"); }
+        async function deletar(id) { if(confirm("Deseja apagar?")) { await _supabase.from('links').delete().eq('id', id); location.reload(); } }
     </script>
 </body>
 </html>
