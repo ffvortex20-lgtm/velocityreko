@@ -43,10 +43,8 @@
             document.getElementById('link-title').innerText = data.title;
             document.getElementById('status-text').innerText = data.status_text;
 
-            // Incrementa view
             await _supabase.from('links').update({ views: (data.views || 0) + 1 }).eq('slug', slug);
 
-            // Carrega Mídia (Foto ou YouTube)
             if (data.image_url && data.image_url.length > 5) {
                 const area = document.getElementById('media-container');
                 if (data.image_url.includes('youtube') || data.image_url.includes('youtu.be')) {
@@ -58,10 +56,10 @@
                     img.src = data.image_url;
                     img.className = "rounded-3xl w-32 h-32 object-cover border-2 border-blue-600 shadow-xl";
                     img.onload = () => { area.innerHTML = ''; area.appendChild(img); };
+                    img.onerror = () => { console.error("Erro ao carregar imagem."); };
                 }
             }
 
-            // Botões de Ação
             const icons = { whatsapp: 'fa-whatsapp', youtube: 'fa-youtube', instagram: 'fa-instagram', tiktok: 'fa-tiktok' };
             data.actions.forEach((acao, i) => {
                 const btn = document.createElement('button');
@@ -70,7 +68,6 @@
                 
                 btn.onclick = () => {
                     window.open(acao.url, '_blank');
-                    // FEEDBACK AZUL
                     btn.style.backgroundColor = "#2563eb"; 
                     btn.style.color = "white";
                     btn.innerHTML = `<i class="fas fa-check-circle"></i> CONCLUÍDO`;
