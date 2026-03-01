@@ -11,7 +11,7 @@
     <div class="max-w-5xl mx-auto space-y-6">
         <div class="flex justify-between items-center mb-8">
             <h1 class="text-2xl font-black italic text-blue-500 uppercase tracking-tighter">VELOCITY <span class="text-white">PRO</span></h1>
-            <button onclick="_supabase.auth.signOut(); location.reload();" class="text-xs font-bold text-zinc-500 hover:text-red-500">SAIR</button>
+            <button onclick="logout()" class="text-xs font-bold text-zinc-500 hover:text-red-500">SAIR</button>
         </div>
 
         <div class="bg-[#111] border border-zinc-800 p-8 rounded-[2.5rem] shadow-2xl space-y-4">
@@ -57,93 +57,136 @@
         const SUPABASE_KEY = 'sb_publishable_n3MtfVbOkj3Ubb-yZ8YKFA_iaaeeVhR';
         const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
+        async function logout() {
+            await _supabase.auth.signOut();
+            location.reload();
+        }
+
         function addAcao() {
             const div = document.createElement('div');
             div.className = "flex gap-2 action-item mt-2";
-            div.innerHTML = `<select class="type bg-zinc-900 border border-zinc-800 p-3 rounded-xl text-xs outline-none"><option value="whatsapp">WhatsApp</option><option value="youtube">YouTube</option><option value="instagram">Instagram</option><option value="tiktok">TikTok</option></select>
-                             <input type="text" placeholder="URL da Rede Social" class="url flex-1 bg-zinc-900 border border-zinc-800 p-3 rounded-xl text-xs outline-none">
-                             <button onclick="this.parentElement.remove()" class="text-red-500 px-2"><i class="fas fa-trash"></i></button>`;
+            div.innerHTML = `
+                <select class="type bg-zinc-900 border border-zinc-800 p-3 rounded-xl text-xs outline-none">
+                    <option value="whatsapp">WhatsApp</option>
+                    <option value="youtube">YouTube</option>
+                    <option value="instagram">Instagram</option>
+                    <option value="tiktok">TikTok</option>
+                </select>
+                <input type="text" placeholder="URL da Rede Social" class="url flex-1 bg-zinc-900 border border-zinc-800 p-3 rounded-xl text-xs outline-none">
+                <button onclick="this.parentElement.remove()" class="text-red-500 px-2"><i class="fas fa-trash"></i></button>
+            `;
             document.getElementById('actions-list').appendChild(div);
         }
 
         async function gerarLink() {
             const btn = document.getElementById('btn-save');
             const originalText = btn.innerText;
-            btn.innerText = "PROCESSANDO..."; btn.disabled = true;
             
-            let imgUrl = document.getElementById('image_url').value;
+            // Validações básicas antes de começar
             const slug = document.getElementById('slug').value.trim();
+            const finalUrl = document.getElementById('final_url').value.trim();
+            if(!slug || !finalUrl) return alert("Slug e URL Final são obrigatórios!");
 
-            if(!slug) { alert("O Slug é obrigatório!"); btn.disabled = false; btn.innerText = originalText; return; }
+            btn.innerText = "PROCESSANDO..."; 
+            btn.disabled = true;
 
             try {
-                // Upload de arquivo
-                const file = document.getElementById('file-upload').files[0];
-                if (file) {
+                // 1. Verificar se o usuário está logado
+                const { data: { user }, error: authError } = await _supabase.auth.getUser();
+                if (authError || !user) throw new Error("Usuário não autenticado. Faça login novamente.");
+
+                let imgUrl = document.getElementById('image_url').value;
+
+                // 2. Upload de arquivo (se houver)
+                const fileInput = document.getElementById('file-upload');
+                if (fileInput.files.length > 0) {
+                    const file = fileInput.files[0];
                     const fileName = `${Date.now()}-${file.name}`;
                     const { data: upData, error: upErr } = await _supabase.storage.from('fotos').upload(fileName, file);
                     if (upErr) throw upErr;
                     imgUrl = _supabase.storage.from('fotos').getPublicUrl(fileName).data.publicUrl;
                 }
 
+                // 3. Mapear ações
                 const acoes = Array.from(document.querySelectorAll('.action-item')).map(el => ({
                     type: el.querySelector('.type').value, 
                     url: el.querySelector('.url').value
-                }));
+                })).filter(a => a.url !== "");
 
-                const { data: { user } } = await _supabase.auth.getUser();
-
-                const { error } = await _supabase.from('links').insert([{
-                    title: document.getElementById('title').value,
+                // 4. Inserir no Banco
+                const { error: insError } = await _supabase.from('links').insert([{
+                    title: document.getElementById('title').value || "Sem título",
                     slug: slug,
                     actions: acoes, 
-                    tiny_url: document.getElementById('final_url').value, 
+                    tiny_url: finalUrl, 
                     image_url: imgUrl,
                     status_text: document.getElementById('status_text').value || 'Ação Requerida',
                     user_id: user.id
                 }]);
 
-                if (error) {
-                    if(error.code === "23505") alert("Este Slug já está em uso! Escolha outro.");
-                    else alert("Erro Supabase: " + error.message);
-                    throw error;
+                if (insError) {
+                    if(insError.code === "23505") throw new Error("Este Slug já está em uso!");
+                    throw insError;
                 }
                 
+                alert("Link criado com sucesso!");
                 location.reload();
+
             } catch (e) {
                 console.error(e);
-                btn.innerText = originalText; btn.disabled = false;
+                alert("Erro: " + e.message);
+                btn.innerText = originalText; 
+                btn.disabled = false;
             }
         }
 
-        async function deletarLink(id) {
-            if(!confirm("Tem certeza que deseja apagar este link?")) return;
-            const { error } = await _supabase.from('links').delete().eq('id', id);
-            if(error) alert("Erro ao deletar: " + error.message);
-            else listar();
-        }
-
         async function listar() {
-            const { data } = await _supabase.from('links').select('*').order('created_at', {ascending: false});
+            const { data, error } = await _supabase.from('links').select('*').order('created_at', {ascending: false});
             const container = document.getElementById('lista-links');
+            
+            if (error) {
+                container.innerHTML = `<p class="text-red-500 text-xs">Erro ao carregar links.</p>`;
+                return;
+            }
+
             if (!data || data.length === 0) {
                 container.innerHTML = `<p class="text-zinc-600 text-xs text-center py-10">Nenhum link ativo.</p>`;
                 return;
             }
-            container.innerHTML = data.map(l => `
-                <div class="bg-[#111] p-6 rounded-2xl border border-zinc-800 flex justify-between items-center shadow-lg">
+
+            container.innerHTML = data.map(l => {
+                const urlGerada = `${window.location.origin}${window.location.pathname.replace('index.html','')}concluir.html?s=${l.slug}`;
+                return `
+                <div class="bg-[#111] p-6 rounded-2xl border border-zinc-800 flex flex-wrap justify-between items-center shadow-lg gap-4">
                     <div>
                         <h3 class="font-bold text-white">${l.title}</h3>
                         <p class="text-[10px] text-zinc-500 italic">slug: ${l.slug}</p>
                     </div>
                     <div class="flex items-center gap-3">
-                        <span class="text-xs text-blue-500 font-black bg-blue-500/10 px-3 py-1 rounded-full"><i class="fas fa-eye mr-1"></i>${l.views || 0}</span>
-                        <button onclick="navigator.clipboard.writeText('${window.location.origin}${window.location.pathname.replace('index.html','')}concluir.html?s=${l.slug}'); alert('Copiado!')" class="bg-blue-600 px-4 py-2 rounded-lg text-[10px] font-bold">COPIAR</button>
-                        <button onclick="deletarLink('${l.id}')" class="bg-red-900/30 text-red-500 p-2 rounded-lg hover:bg-red-500 hover:text-white transition-all"><i class="fas fa-trash"></i></button>
+                        <span class="text-xs text-blue-500 font-black bg-blue-500/10 px-3 py-1 rounded-full">
+                            <i class="fas fa-eye mr-1"></i>${l.views || 0}
+                        </span>
+                        <button onclick="copyLink('${urlGerada}')" class="bg-blue-600 px-4 py-2 rounded-lg text-[10px] font-bold">COPIAR</button>
+                        <button onclick="deletarLink('${l.id}')" class="bg-red-900/30 text-red-500 p-2 rounded-lg hover:bg-red-500 transition-all">
+                            <i class="fas fa-trash"></i>
+                        </button>
                     </div>
                 </div>
-            `).join('');
+            `}).join('');
         }
+
+        function copyLink(url) {
+            navigator.clipboard.writeText(url);
+            alert('Link copiado!');
+        }
+
+        async function deletarLink(id) {
+            if(!confirm("Tem certeza?")) return;
+            const { error } = await _supabase.from('links').delete().eq('id', id);
+            if(error) alert("Erro ao deletar");
+            else listar();
+        }
+
         listar();
     </script>
 </body>
