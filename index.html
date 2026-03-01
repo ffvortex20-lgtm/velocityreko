@@ -69,6 +69,7 @@
             const btn = document.getElementById('btn-save');
             btn.innerText = "PROCESSANDO..."; btn.disabled = true;
             let imgUrl = document.getElementById('image_url').value;
+            const slug = document.getElementById('slug').value;
 
             try {
                 const file = document.getElementById('file-upload').files[0];
@@ -82,26 +83,30 @@
                     type: el.querySelector('.type').value, url: el.querySelector('.url').value
                 }));
 
-                // API TINYURL
-                let finalLink = document.getElementById('final_url').value;
-                let tiny = finalLink;
+                // GERAR LINK CURTO VIA TINYURL (Apontando para o concluir.html)
+                const meuSite = `${window.location.origin}${window.location.pathname.replace('index.html','')}concluir.html?s=${slug}`;
+                let shortLink = meuSite;
+                
                 try {
-                    const res = await fetch(`https://tinyurl.com/api-create.php?url=${encodeURIComponent(finalLink)}`);
-                    if (res.ok) tiny = await res.text();
-                } catch(e) { console.warn("Erro no encurtador, usando link original."); }
+                    const res = await fetch(`https://tinyurl.com/api-create.php?url=${encodeURIComponent(meuSite)}`);
+                    if (res.ok) shortLink = await res.text();
+                } catch(e) { console.warn("Erro no encurtador, usando link longo."); }
 
                 const { error } = await _supabase.from('links').insert([{
                     title: document.getElementById('title').value,
-                    slug: document.getElementById('slug').value,
-                    actions: acoes, tiny_url: tiny, image_url: imgUrl,
+                    slug: slug,
+                    actions: acoes, 
+                    tiny_url: document.getElementById('final_url').value, 
+                    image_url: imgUrl,
                     status_text: document.getElementById('status_text').value || 'Ação Requerida',
-                    user_id: (await _supabase.auth.getUser()).data.user.id
+                    user_id: (await _supabase.auth.getUser()).data.user.id,
+                    short_url: shortLink // Vamos salvar o link encurtado aqui
                 }]);
 
                 if (error) throw error;
                 location.reload();
             } catch (e) {
-                alert("Erro ao criar! Verifique se o Slug é único.");
+                alert("Erro ao criar! Verifique o Slug.");
                 btn.innerText = "CRIAR LINK"; btn.disabled = false;
             }
         }
@@ -119,7 +124,7 @@
                     <div class="flex items-center gap-3">
                         <span class="text-xs text-blue-500 font-black bg-blue-500/10 px-3 py-1 rounded-full"><i class="fas fa-eye mr-1"></i>${l.views || 0}</span>
                         <button onclick="window.open('concluir.html?s=${l.slug}')" class="bg-zinc-800 px-4 py-2 rounded-lg text-[10px] font-bold">VER SITE</button>
-                        <button onclick="navigator.clipboard.writeText('${window.location.origin}${window.location.pathname.replace('index.html','')}concluir.html?s=${l.slug}'); alert('Copiado!')" class="bg-blue-600 px-4 py-2 rounded-lg text-[10px] font-bold">COPIAR</button>
+                        <button onclick="navigator.clipboard.writeText('${l.short_url || (window.location.origin + window.location.pathname.replace('index.html','') + 'concluir.html?s=' + l.slug)}'); alert('Link Curto Copiado!')" class="bg-blue-600 px-4 py-2 rounded-lg text-[10px] font-bold">COPIAR</button>
                     </div>
                 </div>
             `).join('');
