@@ -3,84 +3,37 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Velocity Pro | Painel</title>
+    <title>Velocity | Unlock</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
-        .glass { background: rgba(10, 10, 10, 0.8); backdrop-filter: blur(12px); }
-        .gradient-text { background: linear-gradient(90deg, #3b82f6, #ffffff); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
-        .animate-up { animation: fadeIn 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
         body { background-color: #050505; color: white; }
+        .glass-card { background: #111111; border: 1px solid #1f1f1f; border-radius: 3rem; }
+        .img-slot { width: 100px; height: 100px; background: #1a1a1a; border-radius: 2rem; display: flex; align-items: center; justify-content: center; overflow: hidden; border: 1px solid #333; }
+        @keyframes slideIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .animate-item { animation: slideIn 0.4s ease forwards; }
     </style>
 </head>
-<body class="font-sans">
+<body class="flex items-center justify-center min-h-screen p-6">
 
-    <div id="login-screen" class="hidden min-h-screen flex flex-col items-center justify-center p-6 bg-[radial-gradient(circle_at_top,_var(--tw-gradient-stops))] from-blue-900/20 via-black to-black">
-        <div class="w-full max-w-md text-center space-y-8 animate-up">
-            <div class="inline-block p-6 bg-blue-600/10 rounded-[2.5rem] border border-blue-500/20">
-                <i class="fas fa-bolt text-5xl text-blue-500"></i>
+    <div class="w-full max-w-sm glass-card p-10 text-center shadow-2xl relative overflow-hidden">
+        <div id="progress-bar" class="absolute top-0 left-0 h-1 bg-blue-600 transition-all duration-500" style="width: 0%"></div>
+
+        <div class="flex justify-center mb-6">
+            <div id="media-container" class="img-slot shadow-xl shadow-blue-900/10">
+                <i class="fas fa-bolt text-4xl text-blue-500"></i>
             </div>
-            <h1 class="text-6xl font-black italic uppercase tracking-tighter">VELOCITY <span class="text-blue-500">PRO</span></h1>
-            <button onclick="handleAuth()" class="w-full flex items-center justify-center gap-4 bg-white text-black py-5 rounded-[2rem] font-black text-lg hover:bg-zinc-200 transition-all">
-                <img src="https://www.google.com/favicon.ico" class="w-6 h-6"> Entrar com Google
-            </button>
         </div>
-    </div>
 
-    <div id="dashboard-screen" class="hidden min-h-screen p-4 md:p-10">
-        <div class="max-w-5xl mx-auto space-y-10">
-            <div class="flex justify-between items-center glass p-8 rounded-[3rem] border border-zinc-800/50 animate-up">
-                <div>
-                    <h1 class="text-2xl font-black italic gradient-text tracking-tighter">VELOCITY PRO</h1>
-                    <p id="user-email" class="text-[9px] text-zinc-600 font-black uppercase tracking-widest mt-1"></p>
-                </div>
-                <button onclick="handleAuth()" class="text-[10px] font-black text-zinc-500 hover:text-red-500 border border-zinc-800 px-6 py-2 rounded-2xl transition-all uppercase">Sair</button>
-            </div>
+        <h1 id="link-title" class="text-xl font-black uppercase tracking-tighter italic">CARREGANDO...</h1>
+        <p id="status-text" class="text-[9px] text-zinc-500 font-black uppercase mt-2 tracking-[0.2em]">Sincronizando...</p>
 
-            <div class="bg-[#080808] border border-zinc-800/60 p-8 md:p-12 rounded-[4rem] shadow-3xl space-y-8 animate-up">
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-                    <div class="space-y-4">
-                        <label class="text-[10px] font-black text-blue-500 ml-4 uppercase tracking-widest">Configuração</label>
-                        <input id="title" type="text" placeholder="Título do Link" class="w-full p-5 bg-black border border-zinc-800 rounded-[2rem] outline-none focus:border-blue-500">
-                        <input id="slug" type="text" placeholder="Slug (Ex: pack-fotos)" class="w-full p-5 bg-black border border-zinc-800 rounded-[2rem] outline-none focus:border-blue-500">
-                    </div>
-                    <div class="space-y-4">
-                        <label class="text-[10px] font-black text-blue-500 ml-4 uppercase tracking-widest">Mídia (Pinterest/Img/YouTube)</label>
-                        <input id="file-upload" type="file" accept="image/*" class="w-full text-xs text-zinc-500 bg-black p-4 rounded-[2rem] border border-zinc-800 cursor-pointer">
-                        <input id="image_url" type="text" placeholder="Link do Pin ou Foto" class="w-full p-5 bg-black border border-zinc-800 rounded-[2rem] outline-none text-xs text-blue-400">
-                    </div>
-                </div>
+        <div id="buttons-area" class="mt-8 space-y-3"></div>
 
-                <div class="bg-zinc-900/20 p-8 rounded-[3rem] border border-zinc-800/40">
-                    <p class="text-[10px] font-black text-zinc-600 mb-6 px-4 uppercase tracking-widest">Tarefas de Desbloqueio</p>
-                    <div id="actions-list" class="space-y-4">
-                        <div class="flex gap-3 action-item">
-                            <select class="type bg-black border border-zinc-800 p-5 rounded-[1.5rem] text-xs font-bold outline-none">
-                                <option value="youtube">YouTube</option>
-                                <option value="instagram">Instagram</option>
-                                <option value="pinterest">Pinterest</option>
-                                <option value="tiktok">TikTok</option>
-                            </select>
-                            <input type="text" placeholder="URL da Rede Social" class="url flex-1 bg-black border border-zinc-800 p-5 rounded-[1.5rem] text-xs outline-none">
-                        </div>
-                    </div>
-                    <button onclick="addAcao()" class="mt-4 text-blue-500 text-[10px] font-black hover:text-white transition-all ml-4 uppercase">+ Adicionar Tarefa</button>
-                </div>
-
-                <div class="space-y-4">
-                    <label class="text-[10px] font-black text-green-500 ml-4 uppercase tracking-widest">Link de Download Final</label>
-                    <input id="final_url" type="text" placeholder="https://seu-link.com" class="w-full p-6 bg-black border border-zinc-800 rounded-[2.5rem] outline-none font-bold text-blue-400">
-                </div>
-
-                <button id="btn-save" onclick="gerarLink()" class="w-full bg-blue-600 py-7 rounded-[2.5rem] font-black text-xl hover:bg-blue-500 transition-all active:scale-[0.98]">
-                    CRIAR LINK AGORA
-                </button>
-            </div>
-
-            <div id="lista-links" class="grid gap-5 pb-20"></div>
-        </div>
+        <button id="btn-final" onclick="finalizar()" disabled class="w-full mt-6 py-5 bg-[#1a1a1a] text-zinc-600 rounded-[1.5rem] font-black text-xs border border-zinc-800 cursor-not-allowed transition-all flex items-center justify-center gap-2">
+            <i class="fas fa-lock"></i> <span id="timer-label">BLOQUEADO</span>
+        </button>
     </div>
 
     <script>
@@ -88,116 +41,93 @@
         const SUPABASE_KEY = 'sb_publishable_n3MtfVbOkj3Ubb-yZ8YKFA_iaaeeVhR';
         const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-        _supabase.auth.onAuthStateChange((event, session) => {
-            const user = session?.user || null;
-            if (user) {
-                document.getElementById('login-screen').classList.add('hidden');
-                document.getElementById('dashboard-screen').classList.remove('hidden');
-                document.getElementById('user-email').innerText = user.email;
-                listar(user.id);
-            } else {
-                document.getElementById('dashboard-screen').classList.add('hidden');
-                document.getElementById('login-screen').classList.remove('hidden');
+        let linkData = null;
+        let concluidos = 0;
+
+        async function load() {
+            const slug = new URLSearchParams(window.location.search).get('s');
+            if (!slug) return;
+
+            const { data, error } = await _supabase.from('links').select('*').eq('slug', slug).single();
+            if (error || !data) return;
+
+            linkData = data;
+            document.getElementById('link-title').innerText = data.title;
+            
+            if (data.image_url) {
+                document.getElementById('media-container').innerHTML = `<img src="${data.image_url}" class="w-full h-full object-cover">`;
             }
-        });
 
-        async function handleAuth() {
-            const { data: { user } } = await _supabase.auth.getUser();
-            if (user) await _supabase.auth.signOut();
-            else await _supabase.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: window.location.href } });
+            const area = document.getElementById('buttons-area');
+            area.innerHTML = '';
+
+            if (data.actions && data.actions.length > 0) {
+                data.actions.forEach((acao, i) => {
+                    const btn = document.createElement('button');
+                    btn.className = "w-full py-4 bg-white text-black rounded-[1.2rem] font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-3 animate-item";
+                    
+                    const icons = { 
+                        youtube: 'fa-youtube', instagram: 'fa-instagram', tiktok: 'fa-tiktok', 
+                        pinterest: 'fa-pinterest', whatsapp: 'fa-whatsapp', discord: 'fa-discord', 
+                        twitch: 'fa-twitch', 'x-twitter': 'fa-x-twitter' 
+                    };
+                    const iconClass = icons[acao.type] || 'fa-link';
+
+                    btn.innerHTML = `<i class="fab ${iconClass}"></i> SEGUIR NO ${acao.type.replace('-',' ').toUpperCase()}`;
+                    
+                    btn.onclick = () => {
+                        let finalLink = acao.url.trim();
+                        if (!finalLink.startsWith('http')) finalLink = 'https://' + finalLink;
+                        window.open(finalLink, '_blank');
+                        
+                        btn.classList.replace('bg-white', 'bg-zinc-900');
+                        btn.classList.replace('text-black', 'text-blue-500');
+                        btn.innerHTML = `<i class="fas fa-check-circle"></i> CONCLUÍDO`;
+                        btn.disabled = true;
+                        concluidos++;
+                        
+                        const progBotao = (concluidos / data.actions.length) * 50;
+                        document.getElementById('progress-bar').style.width = progBotao + "%";
+
+                        if (concluidos >= data.actions.length) iniciarTimer();
+                    };
+                    area.appendChild(btn);
+                });
+            } else { iniciarTimer(); }
+
+            _supabase.from('links').update({ views: (data.views || 0) + 1 }).eq('slug', slug).then();
         }
 
-        function addAcao() {
-            const div = document.createElement('div');
-            div.className = "flex gap-3 action-item mt-2 animate-up";
-            div.innerHTML = `
-                <select class="type bg-black border border-zinc-800 p-5 rounded-[1.5rem] text-xs font-bold outline-none px-6">
-                    <option value="youtube">YouTube</option><option value="instagram">Instagram</option><option value="pinterest">Pinterest</option><option value="tiktok">TikTok</option>
-                </select>
-                <input type="text" placeholder="URL da Rede Social" class="url flex-1 bg-black border border-zinc-800 p-5 rounded-[1.5rem] text-xs outline-none">
-                <button onclick="this.parentElement.remove()" class="text-red-500 px-4"><i class="fas fa-trash-alt"></i></button>`;
-            document.getElementById('actions-list').appendChild(div);
-        }
+        function iniciarTimer() {
+            let tempo = 5;
+            document.getElementById('status-text').innerText = "CONFERINDO ETAPAS...";
+            const intervalo = setInterval(() => {
+                tempo--;
+                document.getElementById('timer-label').innerText = `LIBERANDO EM ${tempo}S...`;
+                const progFinal = 50 + (((5 - tempo) / 5) * 50);
+                document.getElementById('progress-bar').style.width = progFinal + "%";
 
-        async function gerarLink() {
-            const btn = document.getElementById('btn-save');
-            const { data: { user } } = await _supabase.auth.getUser();
-            if(!user) return alert("Logue primeiro!");
-
-            const slug = document.getElementById('slug').value.trim().toLowerCase().replace(/\s+/g, '-');
-            const final = document.getElementById('final_url').value.trim();
-            if(!slug || !final) return alert("Slug e Link Final são obrigatórios!");
-
-            btn.innerText = "PROCESSANDO..."; btn.disabled = true;
-
-            try {
-                // Verificação de duplicata manual para evitar o erro constraint
-                const { data: check } = await _supabase.from('links').select('slug').eq('slug', slug).single();
-                if(check) throw new Error("Esse Slug já existe. Tente outro nome!");
-
-                const urlEtapas = `${window.location.origin}${window.location.pathname.replace('index.html','')}concluir.html?s=${slug}`;
-                const resTiny = await fetch(`https://tinyurl.com/api-create.php?url=${encodeURIComponent(urlEtapas)}`);
-                const tinyLink = await resTiny.text();
-
-                let imgUrl = document.getElementById('image_url').value;
-                const file = document.getElementById('file-upload').files[0];
-                if (file) {
-                    const fileName = `public/${Date.now()}-${file.name}`;
-                    const { error: upErr } = await _supabase.storage.from('fotos').upload(fileName, file);
-                    if (!upErr) imgUrl = _supabase.storage.from('fotos').getPublicUrl(fileName).data.publicUrl;
+                if (tempo <= 0) {
+                    clearInterval(intervalo);
+                    const b = document.getElementById('btn-final');
+                    b.disabled = false;
+                    b.classList.replace('bg-[#1a1a1a]', 'bg-blue-600');
+                    b.classList.replace('text-zinc-600', 'text-white');
+                    b.classList.replace('cursor-not-allowed', 'cursor-pointer');
+                    b.innerHTML = `<i class="fas fa-cloud-download-alt"></i> ACESSAR CONTEÚDO`;
+                    document.getElementById('status-text').innerText = "TUDO PRONTO!";
                 }
+            }, 1000);
+        }
 
-                const acoes = Array.from(document.querySelectorAll('.action-item')).map(el => ({
-                    type: el.querySelector('.type').value,
-                    url: el.querySelector('.url').value
-                })).filter(a => a.url.length > 5);
-
-                const { error } = await _supabase.from('links').insert([{
-                    user_id: user.id,
-                    title: document.getElementById('title').value || 'Sem Título',
-                    slug: slug,
-                    actions: acoes,
-                    final_url: final,
-                    tiny_url: tinyLink,
-                    image_url: imgUrl,
-                    status_text: 'ETAPA FINAL'
-                }]);
-
-                if (error) throw error;
-                location.reload();
-            } catch (e) {
-                alert(e.message);
-                btn.innerText = "CRIAR LINK AGORA"; btn.disabled = false;
+        function finalizar() { 
+            if (linkData) {
+                let final = linkData.final_url.trim();
+                if (!final.startsWith('http')) final = 'https://' + final;
+                window.location.href = final;
             }
         }
-
-        async function listar(userId) {
-            const { data } = await _supabase.from('links').select('*').eq('user_id', userId).order('created_at', {ascending: false});
-            const container = document.getElementById('lista-links');
-            if (!data) return;
-
-            container.innerHTML = data.map(l => `
-                <div class="bg-[#0c0c0c] p-6 rounded-[2.5rem] border border-zinc-800/40 flex justify-between items-center group">
-                    <div class="flex items-center gap-6">
-                        <img src="${l.image_url || 'https://via.placeholder.com/60'}" class="w-16 h-16 rounded-[1.5rem] object-cover border border-zinc-800 shadow-lg">
-                        <div>
-                            <h3 class="font-black text-white text-lg tracking-tight italic uppercase">${l.title}</h3>
-                            <p class="text-[9px] text-zinc-600 font-mono mt-1 uppercase tracking-widest">/${l.slug}</p>
-                        </div>
-                    </div>
-                    <div class="flex items-center gap-4">
-                        <div class="text-right mr-4 border-r border-zinc-900 pr-6">
-                            <p class="text-2xl font-black text-blue-500 leading-none">${l.views || 0}</p>
-                            <p class="text-[8px] text-zinc-700 font-black uppercase mt-1">Cliques</p>
-                        </div>
-                        <button onclick="copy('${l.tiny_url}')" class="bg-blue-600 hover:bg-blue-500 px-8 py-4 rounded-[1.5rem] text-[10px] font-black">COPIAR</button>
-                        <button onclick="deletar('${l.id}')" class="text-zinc-800 hover:text-red-500 p-3"><i class="fas fa-trash-alt"></i></button>
-                    </div>
-                </div>`).join('');
-        }
-
-        function copy(t) { navigator.clipboard.writeText(t); alert("Link Copiado!"); }
-        async function deletar(id) { if(confirm("Deseja apagar este link?")) { await _supabase.from('links').delete().eq('id', id); location.reload(); } }
+        load();
     </script>
 </body>
 </html>
