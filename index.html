@@ -11,22 +11,21 @@
     <div class="max-w-5xl mx-auto space-y-6">
         <div class="flex justify-between items-center mb-8">
             <h1 class="text-2xl font-black italic text-blue-500 uppercase tracking-tighter">VELOCITY <span class="text-white">PRO</span></h1>
-            <div class="flex gap-4 items-center">
-                <span id="user-email" class="text-[10px] text-zinc-500 font-bold hidden"></span>
-                <button id="auth-btn" onclick="handleAuth()" class="text-xs font-bold text-blue-500 hover:text-white border border-blue-500/20 px-4 py-2 rounded-xl transition-all">LOGAR COM GOOGLE</button>
+            <div class="flex items-center gap-4">
+                <span id="user-info" class="text-[10px] text-zinc-500 font-bold hidden"></span>
+                <button id="auth-btn" onclick="handleAuth()" class="text-xs font-bold px-4 py-2 rounded-xl transition-all border border-zinc-800"></button>
             </div>
         </div>
 
-        <div class="bg-[#111] border border-zinc-800 p-8 rounded-[2.5rem] shadow-2xl space-y-4">
+        <div id="main-form" class="bg-[#111] border border-zinc-800 p-8 rounded-[2.5rem] shadow-2xl space-y-4 hidden">
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <input id="title" type="text" placeholder="Título do Link" class="p-4 bg-black border border-zinc-800 rounded-2xl outline-none focus:border-blue-600">
-                <input id="slug" type="text" placeholder="Slug (ex: pack-skins)" class="p-4 bg-black border border-zinc-800 rounded-2xl outline-none focus:border-blue-600">
-                <input id="status_text" type="text" placeholder="Texto de Status (Ex: ETAPA FINAL)" class="p-4 bg-black border border-zinc-800 rounded-2xl outline-none focus:border-blue-600">
+                <input id="title" type="text" placeholder="Título do Link" class="p-4 bg-black border border-zinc-800 rounded-2xl outline-none focus:border-blue-600 text-sm">
+                <input id="slug" type="text" placeholder="Slug (ex: pack-skins)" class="p-4 bg-black border border-zinc-800 rounded-2xl outline-none focus:border-blue-600 text-sm">
+                <input id="status_text" type="text" placeholder="Texto de Status (Ex: ETAPA FINAL)" class="p-4 bg-black border border-zinc-800 rounded-2xl outline-none focus:border-blue-600 text-sm">
                 
                 <div class="flex flex-col gap-2">
-                    <label class="text-[10px] text-blue-500 font-bold px-2 uppercase">Mídia (Upload ou Link)</label>
-                    <input id="file-upload" type="file" accept="image/*" class="text-xs text-zinc-500 bg-black p-2 rounded-xl border border-zinc-800 cursor-pointer">
-                    <input id="image_url" type="text" placeholder="Ou link da foto/YouTube" class="p-3 bg-black border border-zinc-800 rounded-xl outline-none text-xs text-blue-400">
+                    <label class="text-[10px] text-blue-500 font-bold px-2 uppercase tracking-widest">Mídia</label>
+                    <input id="image_url" type="text" placeholder="Link da foto ou YouTube" class="p-4 bg-black border border-zinc-800 rounded-2xl outline-none text-xs text-blue-400">
                 </div>
             </div>
 
@@ -34,23 +33,22 @@
                 <div id="actions-list" class="space-y-3">
                     <div class="flex gap-2 action-item">
                         <select class="type bg-zinc-900 border border-zinc-800 p-3 rounded-xl text-xs outline-none">
-                            <option value="youtube">YouTube (Inscritos)</option>
-                            <option value="whatsapp">WhatsApp (Grupo/Contato)</option>
-                            <option value="instagram">Instagram (Seguir)</option>
-                            <option value="tiktok">TikTok</option>
+                            <option value="youtube">YouTube</option>
+                            <option value="whatsapp">WhatsApp</option>
+                            <option value="instagram">Instagram</option>
                         </select>
                         <input type="text" placeholder="URL da Rede Social" class="url flex-1 bg-zinc-900 border border-zinc-800 p-3 rounded-xl text-xs outline-none">
                     </div>
                 </div>
-                <button onclick="addAcao()" class="mt-4 text-blue-400 text-[10px] font-bold hover:underline">+ ADICIONAR AÇÃO</button>
+                <button onclick="addAcao()" class="mt-4 text-blue-400 text-[10px] font-bold hover:underline">+ ADICIONAR TAREFA</button>
             </div>
 
-            <input id="final_url" type="text" placeholder="URL FINAL (Onde o usuário vai chegar)" class="w-full p-4 bg-black border border-zinc-800 rounded-2xl outline-none focus:border-blue-600">
-            <button id="btn-save" onclick="gerarLink()" class="w-full bg-blue-600 py-5 rounded-2xl font-black text-lg hover:bg-blue-500 transition-all shadow-lg shadow-blue-900/20">CRIAR LINK MONETIZADO</button>
+            <input id="final_url" type="text" placeholder="URL DE DESTINO FINAL" class="w-full p-4 bg-black border border-zinc-800 rounded-2xl outline-none focus:border-blue-600 text-sm">
+            <button id="btn-save" onclick="gerarLink()" class="w-full bg-blue-600 py-5 rounded-2xl font-black text-lg hover:bg-blue-500 transition-all shadow-lg shadow-blue-900/20">CRIAR LINK AGORA</button>
         </div>
 
         <div class="mt-12">
-            <h2 class="text-sm font-bold text-zinc-500 mb-4 uppercase tracking-widest px-2">Meus Links Ativos</h2>
+            <h2 id="list-title" class="text-sm font-bold text-zinc-500 mb-4 uppercase tracking-widest px-2">Meus Links</h2>
             <div id="lista-links" class="grid gap-4"></div>
         </div>
     </div>
@@ -60,114 +58,137 @@
         const SUPABASE_KEY = 'sb_publishable_n3MtfVbOkj3Ubb-yZ8YKFA_iaaeeVhR';
         const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-        // --- AUTH ---
-        async function checkUser() {
-            const { data: { user } } = await _supabase.auth.getUser();
+        // --- SISTEMA DE INTERFACE REATIVA ---
+        function updateUI(user) {
             const btn = document.getElementById('auth-btn');
+            const info = document.getElementById('user-info');
+            const form = document.getElementById('main-form');
+            const listTitle = document.getElementById('list-title');
+
             if (user) {
+                // Estado: Logado
                 btn.innerText = "SAIR";
-                document.getElementById('user-email').innerText = user.email;
-                document.getElementById('user-email').classList.remove('hidden');
-                listar();
+                btn.className = "text-xs font-bold px-4 py-2 rounded-xl transition-all border border-red-900/30 text-red-500 hover:bg-red-500 hover:text-white";
+                info.innerText = user.email;
+                info.classList.remove('hidden');
+                form.classList.remove('hidden');
+                listTitle.classList.remove('hidden');
+                listar(user.id);
             } else {
+                // Estado: Deslogado
                 btn.innerText = "LOGAR COM GOOGLE";
-                document.getElementById('lista-links').innerHTML = `<p class="text-zinc-600 text-[10px] text-center py-10">FAÇA LOGIN PARA GERENCIAR SEUS LINKS</p>`;
+                btn.className = "text-xs font-bold px-4 py-2 rounded-xl transition-all border border-blue-500/30 text-blue-500 hover:bg-blue-600 hover:text-white";
+                info.classList.add('hidden');
+                form.classList.add('hidden');
+                listTitle.classList.add('hidden');
+                document.getElementById('lista-links').innerHTML = `
+                    <div class="text-center py-20 border-2 border-dashed border-zinc-900 rounded-[3rem]">
+                        <i class="fas fa-unlock-alt text-zinc-800 text-4xl mb-4"></i>
+                        <p class="text-zinc-500 font-bold text-xs uppercase tracking-widest">Acesso Restrito</p>
+                        <p class="text-zinc-600 text-[10px] mt-1">Faça login para criar e gerenciar seus links monetizados.</p>
+                    </div>`;
             }
         }
 
+        // Ouvinte em tempo real do Supabase
+        _supabase.auth.onAuthStateChange((event, session) => {
+            updateUI(session?.user || null);
+        });
+
         async function handleAuth() {
             const { data: { user } } = await _supabase.auth.getUser();
-            if (user) { await _supabase.auth.signOut(); location.reload(); }
-            else { await _supabase.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: window.location.href } }); }
+            if (user) {
+                await _supabase.auth.signOut();
+            } else {
+                await _supabase.auth.signInWithOAuth({
+                    provider: 'google',
+                    options: { redirectTo: window.location.href }
+                });
+            }
         }
 
-        // --- FUNÇÕES ---
+        // --- LÓGICA DE NEGÓCIO ---
         function addAcao() {
             const div = document.createElement('div');
-            div.className = "flex gap-2 action-item mt-2";
-            div.innerHTML = `<select class="type bg-zinc-900 border border-zinc-800 p-3 rounded-xl text-xs outline-none"><option value="youtube">YouTube</option><option value="whatsapp">WhatsApp</option><option value="instagram">Instagram</option><option value="tiktok">TikTok</option></select>
-                             <input type="text" placeholder="URL da Rede Social" class="url flex-1 bg-zinc-900 border border-zinc-800 p-3 rounded-xl text-xs outline-none">
-                             <button onclick="this.parentElement.remove()" class="text-red-500 px-2"><i class="fas fa-trash"></i></button>`;
+            div.className = "flex gap-2 action-item mt-2 animate-in fade-in duration-300";
+            div.innerHTML = `
+                <select class="type bg-zinc-900 border border-zinc-800 p-3 rounded-xl text-xs outline-none">
+                    <option value="youtube">YouTube</option>
+                    <option value="whatsapp">WhatsApp</option>
+                    <option value="instagram">Instagram</option>
+                </select>
+                <input type="text" placeholder="URL da Rede Social" class="url flex-1 bg-zinc-900 border border-zinc-800 p-3 rounded-xl text-xs outline-none">
+                <button onclick="this.parentElement.remove()" class="text-red-500 px-2"><i class="fas fa-trash-alt"></i></button>`;
             document.getElementById('actions-list').appendChild(div);
         }
 
         async function gerarLink() {
             const btn = document.getElementById('btn-save');
-            const originalText = btn.innerText;
-            
             const { data: { user } } = await _supabase.auth.getUser();
-            if (!user) return alert("Faça login com Google primeiro!");
+            if(!user) return;
 
-            const slug = document.getElementById('slug').value.trim().replace(/\s+/g, '-').toLowerCase();
-            const final_url = document.getElementById('final_url').value.trim();
+            const slug = document.getElementById('slug').value.trim().toLowerCase().replace(/\s+/g, '-');
+            const final = document.getElementById('final_url').value.trim();
 
-            if(!slug || !final_url) return alert("Slug e URL Final são obrigatórios!");
+            if(!slug || !final) return alert("Preencha o Slug e a URL Final!");
 
             btn.innerText = "PROCESSANDO..."; btn.disabled = true;
 
             try {
-                let imgUrl = document.getElementById('image_url').value;
-                const file = document.getElementById('file-upload').files[0];
-                
-                if (file) {
-                    const fileName = `public/${Date.now()}-${file.name}`;
-                    const { error: upErr } = await _supabase.storage.from('fotos').upload(fileName, file);
-                    if (upErr) throw upErr;
-                    imgUrl = _supabase.storage.from('fotos').getPublicUrl(fileName).data.publicUrl;
-                }
-
                 const acoes = Array.from(document.querySelectorAll('.action-item')).map(el => ({
-                    type: el.querySelector('.type').value, 
+                    type: el.querySelector('.type').value,
                     url: el.querySelector('.url').value
                 })).filter(a => a.url.length > 5);
 
                 const { error } = await _supabase.from('links').insert([{
                     user_id: user.id,
-                    title: document.getElementById('title').value || 'Sem Título',
+                    title: document.getElementById('title').value || 'Link Sem Nome',
                     slug: slug,
-                    actions: acoes, 
-                    final_url: final_url, // Corrigido para bater com sua tabela
-                    image_url: imgUrl,
+                    actions: acoes,
+                    final_url: final,
+                    image_url: document.getElementById('image_url').value,
                     status_text: document.getElementById('status_text').value || 'Ação Requerida'
                 }]);
 
                 if (error) throw error;
                 location.reload();
-
             } catch (e) {
                 alert("Erro: " + e.message);
-                btn.innerText = originalText; btn.disabled = false;
+                btn.innerText = "CRIAR LINK AGORA"; btn.disabled = false;
             }
         }
 
-        async function listar() {
-            const { data: { user } } = await _supabase.auth.getUser();
-            const { data } = await _supabase.from('links').select('*').eq('user_id', user.id).order('created_at', {ascending: false});
+        async function listar(userId) {
+            const { data } = await _supabase.from('links').select('*').eq('user_id', userId).order('created_at', {ascending: false});
             const container = document.getElementById('lista-links');
             
-            if (!data || data.length === 0) return;
+            if (!data || data.length === 0) {
+                container.innerHTML = `<p class="text-zinc-700 text-[10px] text-center py-10">Você ainda não tem links ativos.</p>`;
+                return;
+            }
 
             container.innerHTML = data.map(l => {
-                const linkPublico = `${window.location.origin}${window.location.pathname.replace('index.html','')}concluir.html?s=${l.slug}`;
+                const url = `${window.location.origin}${window.location.pathname.replace('index.html','')}concluir.html?s=${l.slug}`;
                 return `
-                <div class="bg-[#111] p-6 rounded-2xl border border-zinc-800 flex justify-between items-center shadow-lg">
+                <div class="bg-[#111] p-5 rounded-3xl border border-zinc-800 flex justify-between items-center group hover:border-blue-900/50 transition-all">
                     <div>
-                        <h3 class="font-bold text-white">${l.title}</h3>
-                        <p class="text-[10px] text-zinc-500 italic">velocitypro.com/${l.slug}</p>
+                        <h3 class="font-bold text-zinc-200 text-sm">${l.title}</h3>
+                        <p class="text-[9px] text-zinc-600 font-mono mt-1">/${l.slug}</p>
                     </div>
                     <div class="flex items-center gap-3">
-                        <span class="text-xs text-blue-500 font-black bg-blue-500/10 px-3 py-1 rounded-full"><i class="fas fa-eye mr-1"></i>${l.views || 0}</span>
-                        <button onclick="copy('${linkPublico}')" class="bg-blue-600 px-4 py-2 rounded-lg text-[10px] font-bold hover:bg-blue-500">COPIAR</button>
-                        <button onclick="deletar('${l.id}')" class="bg-red-900/20 text-red-500 p-2 rounded-lg hover:bg-red-500 hover:text-white transition-all"><i class="fas fa-trash"></i></button>
+                        <div class="text-right mr-2">
+                            <p class="text-[10px] font-black text-blue-500">${l.views || 0}</p>
+                            <p class="text-[8px] text-zinc-600 uppercase">Acessos</p>
+                        </div>
+                        <button onclick="copy('${url}')" class="bg-zinc-800 hover:bg-blue-600 px-4 py-2 rounded-xl text-[10px] font-bold transition-all">COPIAR</button>
+                        <button onclick="deletar('${l.id}')" class="text-zinc-800 hover:text-red-500 p-2"><i class="fas fa-trash-alt"></i></button>
                     </div>
-                </div>
-            `}).join('');
+                </div>`;
+            }).join('');
         }
 
         function copy(t) { navigator.clipboard.writeText(t); alert("Link Copiado!"); }
-        async function deletar(id) { if(confirm("Apagar link?")) { await _supabase.from('links').delete().eq('id', id); listar(); } }
-
-        checkUser();
+        async function deletar(id) { if(confirm("Apagar permanentemente?")) { await _supabase.from('links').delete().eq('id', id); location.reload(); } }
     </script>
 </body>
 </html>
