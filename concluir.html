@@ -26,8 +26,8 @@
             </div>
         </div>
 
-        <h1 id="link-title" class="text-xl font-black uppercase tracking-tighter italic">CARREGANDO...</h1>
-        <p id="status-text" class="text-[9px] text-zinc-500 font-black uppercase mt-2 tracking-[0.2em]">Sincronizando Dados</p>
+        <h1 id="link-title" class="text-xl font-black uppercase tracking-tighter italic italic">CARREGANDO...</h1>
+        <p id="status-text" class="text-[9px] text-zinc-500 font-black uppercase mt-2 tracking-[0.2em]">Aguarde...</p>
 
         <div id="buttons-area" class="mt-8 space-y-3"></div>
 
@@ -45,8 +45,7 @@
         let concluidos = 0;
 
         async function load() {
-            const params = new URLSearchParams(window.location.search);
-            const slug = params.get('s');
+            const slug = new URLSearchParams(window.location.search).get('s');
             if (!slug) return;
 
             const { data, error } = await _supabase.from('links').select('*').eq('slug', slug).single();
@@ -55,6 +54,7 @@
             linkData = data;
             document.getElementById('link-title').innerText = data.title;
             
+            // SUPORTE PINTEREST / IMAGEM
             if (data.image_url) {
                 document.getElementById('media-container').innerHTML = `<img src="${data.image_url}" class="w-full h-full object-cover">`;
             }
@@ -67,11 +67,10 @@
                     const btn = document.createElement('button');
                     btn.className = "w-full py-4 bg-white text-black rounded-[1.2rem] font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-3 animate-item";
                     
-                    // Ícone dinâmico
-                    const icons = { youtube: 'fa-youtube', instagram: 'fa-instagram', tiktok: 'fa-tiktok', whatsapp: 'fa-whatsapp' };
+                    const icons = { youtube: 'fa-youtube', instagram: 'fa-instagram', tiktok: 'fa-tiktok', pinterest: 'fa-pinterest', whatsapp: 'fa-whatsapp' };
                     const iconClass = icons[acao.type] || 'fa-link';
 
-                    btn.innerHTML = `<i class="fab ${iconClass}"></i> SEGUIR NO ${acao.type}`;
+                    btn.innerHTML = `<i class="fab ${iconClass}"></i> SEGUIR NO ${acao.type.toUpperCase()}`;
                     btn.onclick = () => {
                         window.open(acao.url, '_blank');
                         btn.classList.replace('bg-white', 'bg-zinc-900');
@@ -80,9 +79,9 @@
                         btn.disabled = true;
                         concluidos++;
                         
-                        // Atualiza barra conforme botões clicados
-                        const percBotao = (concluidos / data.actions.length) * 50;
-                        document.getElementById('progress-bar').style.width = percBotao + "%";
+                        // Barra de progresso dinâmica
+                        const progBotao = (concluidos / data.actions.length) * 50;
+                        document.getElementById('progress-bar').style.width = progBotao + "%";
 
                         if (concluidos >= data.actions.length) iniciarTimer();
                     };
@@ -90,20 +89,19 @@
                 });
             } else { iniciarTimer(); }
 
-            // Incrementa view
+            // Update Views
             _supabase.from('links').update({ views: (data.views || 0) + 1 }).eq('slug', slug).then();
         }
 
         function iniciarTimer() {
             let tempo = 5;
-            document.getElementById('status-text').innerText = "VALIDANDO ETAPAS...";
+            document.getElementById('status-text').innerText = "CONFERINDO ETAPAS...";
             const intervalo = setInterval(() => {
                 tempo--;
                 document.getElementById('timer-label').innerText = `LIBERANDO EM ${tempo}S...`;
                 
-                // Barra de progresso finalizando de 50% a 100%
-                const progressoTotal = 50 + (((5 - tempo) / 5) * 50);
-                document.getElementById('progress-bar').style.width = progressoTotal + "%";
+                const progFinal = 50 + (((5 - tempo) / 5) * 50);
+                document.getElementById('progress-bar').style.width = progFinal + "%";
 
                 if (tempo <= 0) {
                     clearInterval(intervalo);
@@ -113,7 +111,7 @@
                     b.classList.replace('text-zinc-600', 'text-white');
                     b.classList.replace('cursor-not-allowed', 'cursor-pointer');
                     b.innerHTML = `<i class="fas fa-cloud-download-alt"></i> ACESSAR CONTEÚDO`;
-                    document.getElementById('status-text').innerText = "LIBERADO COM SUCESSO!";
+                    document.getElementById('status-text').innerText = "TUDO PRONTO!";
                 }
             }, 1000);
         }
