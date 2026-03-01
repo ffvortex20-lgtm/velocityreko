@@ -8,8 +8,8 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
-        body { background-color: #050505; color: white; }
-        .glass-card { background: #111111; border: 1px solid #1f1f1f; border-radius: 3rem; }
+        body { background-color: #050505; color: white; font-family: sans-serif; }
+        .glass-card { background: #111111; border: 1px solid #1f1f1f; border-radius: 3rem; position: relative; z-index: 10; }
         
         #media-container { 
             transition: all 0.5s ease;
@@ -29,126 +29,148 @@
 </head>
 <body class="flex items-center justify-center min-h-screen p-6">
 
-    <div class="w-full max-w-sm glass-card p-10 text-center shadow-2xl relative overflow-hidden">
+    <div class="w-full max-w-sm glass-card p-10 text-center shadow-2xl overflow-hidden">
         <div id="progress-bar" class="absolute top-0 left-0 h-1 bg-blue-600 transition-all duration-500" style="width: 0%"></div>
 
         <div id="media-container" class="mode-profile">
             <i id="loading-bolt" class="fas fa-bolt text-4xl text-blue-500 animate-pulse"></i>
         </div>
 
-        <h1 id="link-title" class="text-xl font-black uppercase italic">CARREGANDO...</h1>
-        <p id="status-text" class="text-[9px] text-zinc-500 font-black uppercase mt-2 tracking-widest">Sincronizando tarefas...</p>
+        <h1 id="link-title" class="text-xl font-black uppercase italic tracking-tighter">CARREGANDO...</h1>
+        <p id="status-text" class="text-[9px] text-zinc-500 font-black uppercase mt-2 tracking-widest">Buscando informações...</p>
 
-        <div id="buttons-area" class="mt-8 space-y-3">
-            </div>
+        <div id="buttons-area" class="mt-8 space-y-3 min-h-[50px]">
+            <p class="text-zinc-700 text-[10px] animate-pulse">Sincronizando tarefas...</p>
+        </div>
 
-        <button id="btn-final" onclick="finalizar()" disabled class="w-full mt-6 py-5 bg-[#1a1a1a] text-zinc-600 rounded-[1.5rem] font-black text-xs border border-zinc-800 cursor-not-allowed flex items-center justify-center gap-2">
-            <i class="fas fa-lock"></i> <span id="timer-label">BLOQUEADO</span>
+        <button id="btn-final" onclick="finalizar()" disabled class="w-full mt-6 py-5 bg-[#1a1a1a] text-zinc-600 rounded-[1.5rem] font-black text-xs border border-zinc-800 cursor-not-allowed flex items-center justify-center gap-2 transition-all">
+            <i class="fas fa-lock"></i> <span id="timer-label">AGUARDANDO TAREFAS</span>
         </button>
+        
+        <div id="debug-error" class="mt-4 text-[8px] text-red-900 uppercase font-bold"></div>
     </div>
 
     <script>
         const SUPABASE_URL = 'https://ikqetsyatpxkpwwuiovm.supabase.co';
         const SUPABASE_KEY = 'sb_publishable_n3MtfVbOkj3Ubb-yZ8YKFA_iaaeeVhR';
         const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-        let linkData = null, concluidos = 0;
+        
+        let linkData = null;
+        let concluidos = 0;
 
         async function load() {
-            const params = new URLSearchParams(window.location.search);
-            const slug = params.get('s');
+            const urlParams = new URLSearchParams(window.location.search);
+            const slug = urlParams.get('s');
+
             if (!slug) {
                 document.getElementById('link-title').innerText = "LINK INVÁLIDO";
                 return;
             }
-            
-            const { data, error } = await _supabase.from('links').select('*').eq('slug', slug).single();
-            
+
+            // Busca no Banco
+            const { data, error } = await _supabase
+                .from('links')
+                .select('*')
+                .eq('slug', slug)
+                .single();
+
             if (error || !data) {
-                document.getElementById('link-title').innerText = "NÃO ENCONTRADO";
+                console.error(error);
+                document.getElementById('link-title').innerText = "ERRO 404";
+                document.getElementById('status-text').innerText = "LINK NÃO ENCONTRADO";
                 return;
             }
-            
+
             linkData = data;
             document.getElementById('link-title').innerText = data.title;
-            document.getElementById('status-text').innerText = "COMPLETE AS ETAPAS";
+            document.getElementById('status-text').innerText = "COMPLETE PARA LIBERAR";
+            document.getElementById('timer-label').innerText = "BLOQUEADO";
 
-            // Ajuste da Imagem
+            // Lógica da Imagem
             const container = document.getElementById('media-container');
             if (data.image_url) {
                 const isUpload = data.image_url.includes('supabase.co');
-                container.className = isUpload ? "mode-profile shadow-2xl" : "mode-banner shadow-2xl";
+                container.className = isUpload ? "mode-profile" : "mode-banner";
                 container.innerHTML = `<img src="${data.image_url}" onerror="this.src='https://www.pinterest.com/favicon.ico'">`;
             }
 
-            // CARREGAMENTO DOS BOTÕES (COM TRAVA DE SEGURANÇA)
+            // GERAÇÃO DOS BOTÕES
             const area = document.getElementById('buttons-area');
-            area.innerHTML = ''; // Limpa antes de gerar
+            area.innerHTML = '';
 
-            let acoes = data.actions;
-            // Se as ações vierem como texto, transforma em objeto
-            if (typeof acoes === 'string') acoes = JSON.parse(acoes);
+            // Tenta converter actions se for string
+            let acoesValidas = [];
+            try {
+                acoesValidas = typeof data.actions === 'string' ? JSON.parse(data.actions) : data.actions;
+            } catch (e) {
+                document.getElementById('debug-error').innerText = "ERRO NO FORMATO DOS DADOS";
+            }
 
-            if (acoes && acoes.length > 0) {
-                acoes.forEach(acao => {
+            if (acoesValidas && acoesValidas.length > 0) {
+                acoesValidas.forEach((acao, index) => {
                     const btn = document.createElement('button');
-                    btn.className = "w-full py-4 bg-white text-black rounded-[1.2rem] font-black text-[10px] uppercase flex items-center justify-center gap-3 active:scale-95 transition-all";
+                    btn.className = "w-full py-4 bg-white text-black rounded-[1.2rem] font-black text-[10px] uppercase flex items-center justify-center gap-3 hover:bg-zinc-200 transition-all";
                     
                     const icons = { youtube:'fa-youtube', instagram:'fa-instagram', tiktok:'fa-tiktok', pinterest:'fa-pinterest', whatsapp:'fa-whatsapp', discord:'fa-discord', twitch:'fa-twitch', 'x-twitter':'fa-x-twitter' };
-                    const iconName = icons[acao.type] || 'fa-link';
+                    const icon = icons[acao.type] || 'fa-link';
 
-                    btn.innerHTML = `<i class="fab ${iconName}"></i> SEGUIR NO ${acao.type.toUpperCase()}`;
+                    btn.innerHTML = `<i class="fab ${icon}"></i> SEGUIR NO ${acao.type.replace('-',' ')}`;
                     
                     btn.onclick = () => {
                         window.open(acao.url, '_blank');
-                        btn.className = "w-full py-4 bg-zinc-900 text-blue-500 rounded-[1.2rem] font-black text-[10px] uppercase flex items-center justify-center gap-3 border border-blue-500/20";
+                        
+                        // Marca como concluído
+                        btn.className = "w-full py-4 bg-zinc-900 text-blue-500 rounded-[1.2rem] font-black text-[10px] uppercase flex items-center justify-center gap-3 border border-blue-500/20 opacity-60";
                         btn.innerHTML = `<i class="fas fa-check-circle"></i> CONCLUÍDO`;
                         btn.disabled = true;
-                        
+
                         concluidos++;
-                        const total = acoes.length;
-                        document.getElementById('progress-bar').style.width = (concluidos / total) * 50 + "%";
-                        
-                        if (concluidos >= total) iniciarTimer();
+                        document.getElementById('progress-bar').style.width = (concluidos / acoesValidas.length) * 50 + "%";
+
+                        if (concluidos >= acoesValidas.length) {
+                            iniciarTimer();
+                        }
                     };
                     area.appendChild(btn);
                 });
             } else {
-                // Se não tiver ações, libera direto
+                // Caso não existam ações, libera o download
                 iniciarTimer();
             }
 
+            // Contabiliza View
             _supabase.from('links').update({ views: (data.views || 0) + 1 }).eq('slug', slug).then();
         }
 
         function iniciarTimer() {
-            let t = 5;
+            let tempo = 5;
             document.getElementById('status-text').innerText = "VERIFICANDO...";
-            const iv = setInterval(() => {
-                t--; 
-                document.getElementById('timer-label').innerText = `LIBERANDO EM ${t}S...`;
-                document.getElementById('progress-bar').style.width = 50 + (((5-t)/5)*50) + "%";
-                
-                if (t <= 0) {
-                    clearInterval(iv);
+            
+            const contagem = setInterval(() => {
+                tempo--;
+                document.getElementById('timer-label').innerText = `LIBERANDO EM ${tempo}S...`;
+                document.getElementById('progress-bar').style.width = 50 + (((5-tempo)/5) * 50) + "%";
+
+                if (tempo <= 0) {
+                    clearInterval(contagem);
                     const b = document.getElementById('btn-final');
                     b.disabled = false;
-                    b.className = "w-full mt-6 py-5 bg-blue-600 text-white rounded-[1.5rem] font-black text-xs flex items-center justify-center gap-2 shadow-lg shadow-blue-600/20 cursor-pointer";
+                    b.className = "w-full mt-6 py-5 bg-blue-600 text-white rounded-[1.5rem] font-black text-xs flex items-center justify-center gap-2 shadow-lg shadow-blue-600/40 cursor-pointer hover:bg-blue-500 transition-all";
                     b.innerHTML = `<i class="fas fa-cloud-download-alt"></i> ACESSAR CONTEÚDO`;
-                    document.getElementById('status-text').innerText = "PRONTO!";
+                    document.getElementById('status-text').innerText = "ACESSO LIBERADO!";
                 }
             }, 1000);
         }
 
-        function finalizar() { 
-            if (linkData) {
-                let url = linkData.final_url;
-                if(!url.startsWith('http')) url = 'https://' + url;
+        function finalizar() {
+            if (linkData && linkData.final_url) {
+                let url = linkData.final_url.trim();
+                if (!url.startsWith('http')) url = 'https://' + url;
                 window.location.href = url;
             }
         }
 
-        // Tenta carregar. Se falhar, avisa no console.
-        load().catch(err => console.error("Erro no Load:", err));
+        load();
     </script>
 </body>
 </html>
